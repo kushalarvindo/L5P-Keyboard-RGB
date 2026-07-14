@@ -186,7 +186,7 @@ impl App {
 
             #[cfg(not(target_os = "linux"))]
             if let Ok(event) = tray_icon::TrayIconEvent::receiver().try_recv() {
-                if event.click_type == tray_icon::ClickType::Left {
+                if let tray_icon::TrayIconEvent::Click { button: tray_icon::MouseButton::Left, .. } = event {
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
@@ -393,7 +393,6 @@ impl App {
                         if let Ok(auto) = auto_launch::AutoLaunchBuilder::new()
                             .set_app_name("LegionKeyboardRGB")
                             .set_app_path(&current_exe.to_string_lossy())
-                            .set_use_launch_agent(true)
                             .build()
                         {
                             let is_auto_launch = auto.is_enabled().unwrap_or(false);
