@@ -55,7 +55,7 @@ thiserror = "2.0.12"
 single-instance = "0.3.3"
 open = "5.3.2"
 error-stack = "0.5.0"
-winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv"] }
+winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "winuser"] }
 
 # Tray icon
 auto-launch = "0.5.0"

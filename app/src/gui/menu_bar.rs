@@ -127,10 +127,6 @@ impl MenuBarState {
                 about_modal.open();
             }
 
-            if ui.button("Donate").clicked() {
-                open::that("https://www.buymeacoffee.com/4JXdev").unwrap();
-            }
-
             if !*DENY_HIDING && ui.button("Exit").clicked() {
                 self.gui_sender.send(GuiMessage::Quit).unwrap();
             }

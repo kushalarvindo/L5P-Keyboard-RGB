@@ -36,7 +36,7 @@ pub fn manager_error(ctx: &Context) -> bool {
             ui.vertical(|ui| {
                 Frame::NONE.inner_margin(ModalStyle::default().body_margin).show(ui, |ui| {
                     ui.colored_label(Color32::from_hex("#ff9900").unwrap(), "On Linux, you may need to configure additional permissions:");
-                    let url = "https://github.com/4JX/L5P-Keyboard-RGB#usage";
+                    let url = "https://github.com/kushalarvindo/L5P-Keyboard-RGB#usage";
                     if ui.link(url).clicked() {
                         let _ = open::that(url);
                     }
@@ -79,12 +79,12 @@ pub fn about(ctx: &Context) -> Modal {
     modal.show(|ui| {
         modal.title(ui, "About");
         modal.frame(ui, |ui| {
-            modal.body(ui, "A program made by 4JX.");
+            modal.body(ui, "A program made by kushalarvindo.");
             // Try to match the modal's overall margin
             ui.vertical(|ui| {
                 Frame::NONE.inner_margin(ModalStyle::default().body_margin).show(ui, |ui| {
                     ui.label("Something's not working?");
-                    let url = "https://github.com/4JX/L5P-Keyboard-RGB/issues";
+                    let url = "https://github.com/kushalarvindo/L5P-Keyboard-RGB/issues";
                     if ui.link(url).clicked() {
                         let _ = open::that(url);
                     }
