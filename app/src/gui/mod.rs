@@ -114,6 +114,10 @@ impl App {
             false
         };
 
+        if instance_not_unique {
+            std::process::exit(0);
+        }
+
         let manager = manager_result.ok();
 
         let settings: Settings = Settings::load();
@@ -162,20 +166,44 @@ impl App {
         let gui_tx = self.gui_tx.clone();
         let has_tray = self.has_tray.clone();
 
+        let wake_socket = std::net::UdpSocket::bind("127.0.0.1:48294").ok();
+        if let Some(sock) = &wake_socket {
+            sock.set_nonblocking(true).unwrap();
+        }
+
         std::thread::spawn(move || loop {
-            if let Ok(event) = MenuEvent::receiver().recv() {
+            if let Ok(event) = MenuEvent::receiver().try_recv() {
                 if event.id == SHOW_ID {
                     egui_ctx.request_repaint();
-
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
                 } else if event.id == QUIT_ID {
                     egui_ctx.request_repaint();
-
                     let _ = gui_tx.send(GuiMessage::Quit);
                     has_tray.store(false, Ordering::SeqCst);
                 }
             }
+
+            if let Ok(event) = tray_icon::TrayIconEvent::receiver().try_recv() {
+                if event.click_type == tray_icon::ClickType::Left {
+                    egui_ctx.request_repaint();
+                    egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+                    egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
+                }
+            }
+
+            if let Some(sock) = &wake_socket {
+                let mut buf = [0; 10];
+                if let Ok((amt, _)) = sock.recv_from(&mut buf) {
+                    if &buf[..amt] == b"WAKE" {
+                        egui_ctx.request_repaint();
+                        egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+                        egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
+                    }
+                }
+            }
+
+            std::thread::sleep(Duration::from_millis(50));
         });
 
         let ctx = cc.egui_ctx.clone();
@@ -242,7 +270,7 @@ impl eframe::App for App {
         });
 
         CentralPanel::default()
-            .frame(Frame::new().inner_margin(self.theme.spacing.large).fill(Color32::from_gray(26)))
+            .frame(Frame::new().inner_margin(self.theme.spacing.large).fill(Color32::from_rgba_unmultiplied(26, 26, 26, 200)))
             .show(ctx, |ui| {
                 ui.style_mut().spacing.item_spacing = Vec2::splat(self.theme.spacing.large);
                 self.show_ui_elements(ctx, ui);
@@ -356,6 +384,28 @@ impl App {
                 if self.loaded_effect.is_playing() && ui.button("Stop custom effect").clicked() {
                     self.loaded_effect.state = State::None;
                     self.state_changed = true;
+                }
+
+                #[cfg(target_os = "windows")]
+                {
+                    if let Ok(current_exe) = std::env::current_exe() {
+                        if let Ok(auto) = auto_launch::AutoLaunchBuilder::new()
+                            .set_app_name("LegionKeyboardRGB")
+                            .set_app_path(&current_exe.to_string_lossy())
+                            .set_use_launch_agent(true)
+                            .build()
+                        {
+                            let is_auto_launch = auto.is_enabled().unwrap_or(false);
+                            let mut auto_launch_toggled = is_auto_launch;
+                            if ui.checkbox(&mut auto_launch_toggled, "Start with Windows").changed() {
+                                if auto_launch_toggled {
+                                    let _ = auto.enable();
+                                } else {
+                                    let _ = auto.disable();
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Frame {
