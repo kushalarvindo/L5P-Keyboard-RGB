@@ -42,6 +42,7 @@ pub struct App {
 
     has_tray: Arc<AtomicBool>,
     visible: Arc<AtomicBool>,
+    was_minimized: bool,
 
     manager: Option<EffectManager>,
     state_changed: bool,
@@ -132,6 +133,7 @@ impl App {
 
             has_tray,
             visible,
+            was_minimized: false,
 
             manager,
             // Default to true for an instant update on launch
@@ -179,9 +181,7 @@ impl App {
                     egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
                 } else if event.id == QUIT_ID {
-                    egui_ctx.request_repaint();
-                    let _ = gui_tx.send(GuiMessage::Quit);
-                    has_tray.store(false, Ordering::SeqCst);
+                    std::process::exit(0);
                 }
             }
 
@@ -458,8 +458,11 @@ impl App {
     fn handle_close_request(&mut self, ctx: &Context) {
         let close_requested = ctx.input(|i| i.viewport().close_requested());
         let minimized = ctx.input(|i| i.viewport().minimized.unwrap_or(false));
+        
+        let just_minimized = minimized && !self.was_minimized;
+        self.was_minimized = minimized;
 
-        if (close_requested || minimized) && !*DENY_HIDING {
+        if (close_requested || just_minimized) && !*DENY_HIDING {
             if self.has_tray.load(Ordering::Relaxed) {
                 if close_requested {
                     ctx.send_viewport_cmd(ViewportCommand::CancelClose);
