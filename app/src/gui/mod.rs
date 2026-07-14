@@ -184,6 +184,7 @@ impl App {
                 }
             }
 
+            #[cfg(not(target_os = "linux"))]
             if let Ok(event) = tray_icon::TrayIconEvent::receiver().try_recv() {
                 if event.click_type == tray_icon::ClickType::Left {
                     egui_ctx.request_repaint();
