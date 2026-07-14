@@ -176,6 +176,7 @@ impl App {
                 if event.id == SHOW_ID {
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+                    egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
                 } else if event.id == QUIT_ID {
                     egui_ctx.request_repaint();
@@ -189,6 +190,7 @@ impl App {
                 if let tray_icon::TrayIconEvent::Click { button: tray_icon::MouseButton::Left, .. } = event {
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+                    egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
                 }
             }
@@ -199,6 +201,7 @@ impl App {
                     if &buf[..amt] == b"WAKE" {
                         egui_ctx.request_repaint();
                         egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+                        egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
                         egui_ctx.send_viewport_cmd(ViewportCommand::Focus);
                     }
                 }
@@ -453,12 +456,15 @@ impl App {
     }
 
     fn handle_close_request(&mut self, ctx: &Context) {
-        if ctx.input(|i| i.viewport().close_requested()) && !*DENY_HIDING {
+        let close_requested = ctx.input(|i| i.viewport().close_requested());
+        let minimized = ctx.input(|i| i.viewport().minimized.unwrap_or(false));
+
+        if (close_requested || minimized) && !*DENY_HIDING {
             if self.has_tray.load(Ordering::Relaxed) {
-                ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+                if close_requested {
+                    ctx.send_viewport_cmd(ViewportCommand::CancelClose);
+                }
                 ctx.send_viewport_cmd(ViewportCommand::Visible(false));
-            } else {
-                // Close normally
             }
         }
     }
