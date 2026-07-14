@@ -6,11 +6,11 @@ use error_stack::{Result, ResultExt};
 use legion_rgb_driver::{BaseEffects, Keyboard, SPEED_RANGE};
 use profile::Profile;
 use rand::{rng, rngs::ThreadRng};
-use single_instance::SingleInstance;
 use std::{
     sync::atomic::{AtomicBool, Ordering},
     thread,
     time::Duration,
+    net::UdpSocket,
 };
 use std::{sync::Arc, thread::JoinHandle};
 use thiserror::Error;
@@ -45,9 +45,9 @@ struct Inner {
     rx: Receiver<Message>,
     stop_signals: StopSignals,
     last_profile: Profile,
-    // Can't drop this else it stops "reserving" whatever underlying implementation identifier it uses
+    // Keep socket open to hold the port
     #[allow(dead_code)]
-    single_instance: SingleInstance,
+    udp_socket: UdpSocket,
 }
 
 #[derive(Clone, Copy)]
@@ -63,12 +63,16 @@ impl EffectManager {
             keyboard_stop_signal: Arc::new(AtomicBool::new(false)),
         };
 
-        // Use the crate's name as the identifier, should be unique enough
-        let single_instance = SingleInstance::new(env!("CARGO_PKG_NAME")).unwrap();
-
-        if !single_instance.is_single() {
+        // Bind UDP socket for single-instance check and waking
+        let udp_socket = UdpSocket::bind("127.0.0.1:48293");
+        if udp_socket.is_err() {
+            if let Ok(ping) = UdpSocket::bind("127.0.0.1:0") {
+                let _ = ping.send_to(b"WAKE", "127.0.0.1:48293");
+            }
             return Err(ManagerCreationError::InstanceAlreadyRunning.into());
         }
+        let udp_socket = udp_socket.unwrap();
+        udp_socket.set_nonblocking(true).unwrap();
 
         let keyboard = legion_rgb_driver::get_keyboard(stop_signals.keyboard_stop_signal.clone())
             .change_context(ManagerCreationError::AcquireKeyboard)
@@ -83,7 +87,7 @@ impl EffectManager {
             rx,
             stop_signals: stop_signals.clone(),
             last_profile: Profile::default(),
-            single_instance,
+            udp_socket,
         };
 
         macro_rules! effect_thread_loop {
