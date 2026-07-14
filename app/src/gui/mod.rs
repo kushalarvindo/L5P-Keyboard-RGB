@@ -176,6 +176,7 @@ impl App {
         std::thread::spawn(move || loop {
             if let Ok(event) = MenuEvent::receiver().try_recv() {
                 if event.id == SHOW_ID {
+                    force_show_window();
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
@@ -188,6 +189,7 @@ impl App {
             #[cfg(not(target_os = "linux"))]
             if let Ok(event) = tray_icon::TrayIconEvent::receiver().try_recv() {
                 if let tray_icon::TrayIconEvent::Click { button: tray_icon::MouseButton::Left, .. } = event {
+                    force_show_window();
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
                     egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
@@ -199,6 +201,7 @@ impl App {
                 let mut buf = [0; 10];
                 if let Ok((amt, _)) = sock.recv_from(&mut buf) {
                     if &buf[..amt] == b"WAKE" {
+                        force_show_window();
                         egui_ctx.request_repaint();
                         egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
                         egui_ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
@@ -468,6 +471,23 @@ impl App {
                     ctx.send_viewport_cmd(ViewportCommand::CancelClose);
                 }
                 ctx.send_viewport_cmd(ViewportCommand::Visible(false));
+            }
+        }
+    }
+}
+
+fn force_show_window() {
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        use winapi::um::winuser::{FindWindowW, ShowWindow, SetForegroundWindow, SW_RESTORE};
+        
+        let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
+        let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
+        if !hwnd.is_null() {
+            unsafe {
+                ShowWindow(hwnd, SW_RESTORE);
+                SetForegroundWindow(hwnd);
             }
         }
     }
