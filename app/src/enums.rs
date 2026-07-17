@@ -26,6 +26,7 @@ pub enum Effects {
     Christmas,
     Fade,
     Temperature,
+    SunMoon,
     Ripple,
 }
 

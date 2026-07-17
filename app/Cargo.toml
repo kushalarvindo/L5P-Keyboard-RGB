@@ -44,6 +44,7 @@ photon-rs = { git = "https://github.com/silvia-odwyer/photon", rev = "b7e57c9", 
 device_query = "4.0.1"
 
 rand = "0.9.1"
+chrono = "0.4"
 strum = "0.27.1"
 strum_macros = "0.27.1"
 serde = { version = "1.0.219", features = ["derive"] }

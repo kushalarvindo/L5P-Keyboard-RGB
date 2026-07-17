@@ -16,6 +16,7 @@ pub mod lightning;
 pub mod ripple;
 pub mod swipe;
 pub mod temperature;
+pub mod sun_moon;
 pub mod zones;
 
 pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &mut bool, theme: &crate::gui::style::Theme) {
