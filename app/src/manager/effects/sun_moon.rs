@@ -9,10 +9,10 @@ pub fn play(manager: &mut Inner) {
         
         let mut target = [0; 12];
         
-        let sun_color = [255.0, 180.0, 0.0];
-        let day_sky = [60.0, 150.0, 255.0];
-        let moon_color = [255.0, 255.0, 255.0];
-        let night_sky = [5.0, 5.0, 40.0];
+        let sun_color: [f32; 3] = [255.0, 180.0, 0.0];
+        let day_sky: [f32; 3] = [60.0, 150.0, 255.0];
+        let moon_color: [f32; 3] = [255.0, 255.0, 255.0];
+        let night_sky: [f32; 3] = [5.0, 5.0, 40.0];
         
         // 6 AM is 21600 seconds, 6 PM is 64800 seconds
         let is_day = seconds_since_midnight >= 21600 && seconds_since_midnight < 64800;
