@@ -25,7 +25,11 @@ pub enum Effects {
     Disco,
     Christmas,
     Fade,
-    Temperature,
+    Temperature {
+        use_accent: bool,
+        hot_color: [u8; 3],
+        cool_color: [u8; 3],
+    },
     SunMoon,
     Ripple,
 }

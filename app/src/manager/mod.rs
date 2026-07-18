@@ -202,7 +202,7 @@ impl Inner {
             Effects::Disco => disco::play(self, profile, rng),
             Effects::Christmas => christmas::play(self, rng),
             Effects::Fade => fade::play(self, profile),
-            Effects::Temperature => temperature::play(self),
+            Effects::Temperature { use_accent, hot_color, cool_color } => temperature::play(self, use_accent, hot_color, cool_color),
             Effects::SunMoon => sun_moon::play(self),
             Effects::Ripple => ripple::play(self, profile),
         }

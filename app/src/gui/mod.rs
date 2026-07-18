@@ -423,7 +423,12 @@ impl App {
                     ui.style_mut().spacing.item_spacing = self.theme.spacing.default;
                     ScrollArea::vertical().show(ui, |ui| {
                         ui.with_layout(Layout::top_down_justified(Align::Min), |ui| {
-                            for val in Effects::iter() {
+                            for mut val in Effects::iter() {
+                                if let Effects::Temperature { use_accent, hot_color, cool_color } = &mut val {
+                                    *use_accent = true;
+                                    *hot_color = [255, 0, 0];
+                                    *cool_color = [0, 0, 255];
+                                }
                                 let text: &'static str = val.into();
                                 if ui.selectable_value(&mut self.current_profile.effect, val, text).clicked() {
                                     self.state_changed = true;

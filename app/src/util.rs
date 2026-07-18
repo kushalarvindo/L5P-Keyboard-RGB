@@ -34,3 +34,29 @@ where
         Ok(())
     }
 }
+
+#[cfg(target_os = "windows")]
+pub fn get_windows_accent_color() -> Option<[u8; 3]> {
+    use std::os::windows::process::CommandExt;
+    
+    let output = std::process::Command::new("powershell")
+        .args([
+            "-NoProfile",
+            "-Command",
+            "(Get-ItemProperty -Path 'HKCU:\\Software\\Microsoft\\Windows\\DWM').ColorizationColor"
+        ])
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .output()
+        .ok()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if let Some(line) = stdout.lines().next() {
+        if let Ok(color_val) = line.trim().parse::<u32>() {
+            let r = ((color_val >> 16) & 0xFF) as u8;
+            let g = ((color_val >> 8) & 0xFF) as u8;
+            let b = (color_val & 0xFF) as u8;
+            return Some([r, g, b]);
+        }
+    }
+    None
+}

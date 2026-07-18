@@ -134,6 +134,7 @@ fn start_ui(output_type: OutputType, hide_window: bool) {
             {
                 tray_c.borrow_mut().replace(tray::build_tray(true));
                 has_tray_c.store(tray_c.borrow().is_some(), Ordering::SeqCst);
+                apply_windows_mica();
             }
             Ok(Box::new(app.init(cc)))
         }),
@@ -152,5 +153,37 @@ fn load_icon_data(image_data: &[u8]) -> IconData {
         rgba: pixels,
         width: image.width(),
         height: image.height(),
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn apply_windows_mica() {
+    use std::ptr;
+    use winapi::um::winuser::FindWindowW;
+    use winapi::um::dwmapi::DwmSetWindowAttribute;
+    use std::os::windows::ffi::OsStrExt;
+
+    let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(std::iter::once(0)).collect();
+    let hwnd = unsafe { FindWindowW(ptr::null(), title.as_ptr()) };
+    if !hwnd.is_null() {
+        let backdrop_type: i32 = 2; // Mica
+        unsafe {
+            DwmSetWindowAttribute(
+                hwnd as *mut _,
+                38, // DWMWA_SYSTEMBACKDROP_TYPE
+                &backdrop_type as *const _ as *const _,
+                std::mem::size_of::<i32>() as u32,
+            );
+        }
+        
+        let dark_mode: i32 = 1;
+        unsafe {
+            DwmSetWindowAttribute(
+                hwnd as *mut _,
+                20, // DWMWA_USE_IMMERSIVE_DARK_MODE
+                &dark_mode as *const _ as *const _,
+                std::mem::size_of::<i32>() as u32,
+            );
+        }
     }
 }

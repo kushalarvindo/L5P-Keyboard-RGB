@@ -2,13 +2,32 @@ use std::{sync::atomic::Ordering, thread, time::Duration};
 
 use crate::manager::Inner;
 
+fn get_colors(use_accent: bool, hot_color: [u8; 3], cool_color: [u8; 3]) -> ([f32; 12], [f32; 12]) {
+    let mut hot = hot_color;
+    #[cfg(target_os = "windows")]
+    if use_accent {
+        if let Some(accent) = crate::util::get_windows_accent_color() {
+            hot = accent;
+        }
+    }
+    
+    let mut temp_cool = [0.0; 12];
+    let mut temp_hot = [0.0; 12];
+    for z in 0..4 {
+        for c in 0..3 {
+            temp_hot[z * 3 + c] = hot[c] as f32;
+            temp_cool[z * 3 + c] = cool_color[c] as f32;
+        }
+    }
+    (temp_hot, temp_cool)
+}
+
 #[cfg(target_os = "linux")]
-pub fn play(manager: &mut Inner) {
+pub fn play(manager: &mut Inner, use_accent: bool, hot_color: [u8; 3], cool_color: [u8; 3]) {
     use sysinfo::{Components, System};
     let safe_temp = 20.0;
     let ramp_boost = 1.6;
-    let temp_cool: [f32; 12] = [0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0];
-    let temp_hot: [f32; 12] = [255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0];
+    let (temp_hot, temp_cool) = get_colors(use_accent, hot_color, cool_color);
 
     let mut color_differences: [f32; 12] = [0.0; 12];
     for index in 0..12 {
@@ -45,13 +64,12 @@ pub fn play(manager: &mut Inner) {
 }
 
 #[cfg(target_os = "windows")]
-pub fn play(manager: &mut Inner) {
+pub fn play(manager: &mut Inner, use_accent: bool, hot_color: [u8; 3], cool_color: [u8; 3]) {
     use std::os::windows::process::CommandExt;
     
     let safe_temp = 20.0;
     let ramp_boost = 1.6;
-    let temp_cool: [f32; 12] = [0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0];
-    let temp_hot: [f32; 12] = [255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0, 255.0, 0.0, 0.0];
+    let (temp_hot, temp_cool) = get_colors(use_accent, hot_color, cool_color);
 
     let mut color_differences: [f32; 12] = [0.0; 12];
     for index in 0..12 {

@@ -55,6 +55,28 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 });
             });
         }
+        Effects::Temperature { use_accent, hot_color, cool_color } => {
+            ui.scope(|ui| {
+                ui.style_mut().spacing.item_spacing = theme.spacing.default;
+                show_brightness(ui, profile, update_lights);
+                
+                #[cfg(target_os = "windows")]
+                {
+                    *update_lights |= ui.checkbox(use_accent, "Use Windows Accent Color").changed();
+                }
+                
+                if !*use_accent {
+                    ui.horizontal(|ui| {
+                        *update_lights |= ui.color_edit_button_srgb(hot_color).changed();
+                        ui.label("Hot Color");
+                    });
+                }
+                ui.horizontal(|ui| {
+                    *update_lights |= ui.color_edit_button_srgb(cool_color).changed();
+                    ui.label("Cool Color");
+                });
+            });
+        }
         _ => {
             default_ui::show(ui, profile, update_lights, &theme.spacing);
         }
