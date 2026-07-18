@@ -58,6 +58,8 @@ single-instance = "0.3.3"
 open = "5.3.2"
 error-stack = "0.5.0"
 winapi = { version = "0.3.9", features = ["consoleapi", "wincon", "processenv", "winuser", "dwmapi"] }
+cpal = "0.15.3"
+rustfft = "6.2.0"
 
 # Tray icon
 auto-launch = "0.5.0"

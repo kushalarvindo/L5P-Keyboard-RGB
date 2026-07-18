@@ -17,6 +17,9 @@ pub mod ripple;
 pub mod swipe;
 pub mod temperature;
 pub mod sun_moon;
+pub mod reactive;
+pub mod system_load;
+pub mod audio;
 pub mod zones;
 
 pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &mut bool, theme: &crate::gui::style::Theme) {
@@ -52,6 +55,22 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 ui.horizontal(|ui| {
                     *update_lights |= ui.add(Slider::new(saturation_boost, 0.0..=1.0)).changed();
                     ui.label("Saturation Boost");
+                });
+            });
+        }
+        Effects::Reactive { typing_color, bg_color } => {
+            ui.scope(|ui| {
+                ui.style_mut().spacing.item_spacing = theme.spacing.default;
+                show_brightness(ui, profile, update_lights);
+                show_effect_settings(ui, profile, update_lights);
+                
+                ui.horizontal(|ui| {
+                    *update_lights |= ui.color_edit_button_srgb(bg_color).changed();
+                    ui.label("Background Color");
+                });
+                ui.horizontal(|ui| {
+                    *update_lights |= ui.color_edit_button_srgb(typing_color).changed();
+                    ui.label("Typing Splash Color");
                 });
             });
         }

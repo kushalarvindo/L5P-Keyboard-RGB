@@ -428,6 +428,9 @@ impl App {
                                     *use_accent = true;
                                     *hot_color = [255, 0, 0];
                                     *cool_color = [0, 0, 255];
+                                } else if let Effects::Reactive { typing_color, bg_color } = &mut val {
+                                    *typing_color = [255, 255, 255];
+                                    *bg_color = [0, 0, 0];
                                 }
                                 let text: &'static str = val.into();
                                 if ui.selectable_value(&mut self.current_profile.effect, val, text).clicked() {

@@ -32,6 +32,12 @@ pub enum Effects {
     },
     SunMoon,
     Ripple,
+    Reactive {
+        typing_color: [u8; 3],
+        bg_color: [u8; 3],
+    },
+    SystemLoad,
+    AudioVisualizer,
 }
 
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, EnumIter, EnumString, PartialEq)]
@@ -60,7 +66,7 @@ impl Effects {
     pub fn takes_speed(self) -> bool {
         matches!(
             self,
-            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple
+            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple | Self::Reactive { .. }
         )
     }
 
