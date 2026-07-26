@@ -56,9 +56,9 @@ pub fn play(manager: &mut Inner, bg_color: [u8; 3], speed: u8, width: f32) {
             if !last_keys.contains(key) {
                 // Spawn a new ripple!
                 let color = [
-                    rng.gen_range(50.0_f32..255.0_f32),
-                    rng.gen_range(50.0_f32..255.0_f32),
-                    rng.gen_range(50.0_f32..255.0_f32),
+                    rng.random_range(50.0_f32..255.0_f32),
+                    rng.random_range(50.0_f32..255.0_f32),
+                    rng.random_range(50.0_f32..255.0_f32),
                 ];
                 
                 ripples.push(Ripple {
