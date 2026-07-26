@@ -18,7 +18,7 @@ struct Ripple {
 fn key_x(key: &Keycode) -> f32 {
     use Keycode::*;
     match key {
-        Escape | Tilde | Tab | CapsLock | LShift | LControl | LMeta | LAlt => 0.05,
+        Escape | Grave | Tab | CapsLock | LShift | LControl | LMeta | LAlt => 0.05,
         Q | A | Z | Key1 | F1 => 0.15,
         W | S | X | Key2 | F2 => 0.2,
         E | D | C | Key3 | F3 => 0.25,
@@ -30,9 +30,9 @@ fn key_x(key: &Keycode) -> f32 {
         O | L | Dot | Key9 | F9 => 0.6,
         P | Semicolon | Slash | Key0 | F10 => 0.65,
         LeftBracket | RightBracket | Minus | Equal | F11 | F12 => 0.7,
-        Enter | BackSlash | BackSpace | RShift | RControl | RAlt | RMeta => 0.75,
+        Enter | BackSlash | Backspace | RShift | RControl | RAlt | RMeta => 0.75,
         Up | Down | Left | Right | Insert | Delete | Home | End | PageUp | PageDown => 0.8,
-        Numpad0 | Numpad1 | Numpad4 | Numpad7 | NumLock => 0.85,
+        Numpad0 | Numpad1 | Numpad4 | Numpad7 => 0.85,
         Numpad2 | Numpad5 | Numpad8 | NumpadDivide => 0.9,
         Numpad3 | Numpad6 | Numpad9 | NumpadMultiply | NumpadSubtract | NumpadAdd | NumpadEnter => 0.95,
         Space => 0.4,
