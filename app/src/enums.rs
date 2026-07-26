@@ -38,6 +38,10 @@ pub enum Effects {
     },
     SystemLoad,
     AudioVisualizer,
+    MultiRipple {
+        bg_color: [u8; 3],
+        width: f32,
+    },
 }
 
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, EnumIter, EnumString, PartialEq)]
@@ -66,7 +70,7 @@ impl Effects {
     pub fn takes_speed(self) -> bool {
         matches!(
             self,
-            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple | Self::Reactive { .. }
+            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple | Self::Reactive { .. } | Self::MultiRipple { .. }
         )
     }
 

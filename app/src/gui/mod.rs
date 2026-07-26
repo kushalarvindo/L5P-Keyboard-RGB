@@ -429,6 +429,9 @@ impl App {
                                 } else if let Effects::Reactive { typing_color, bg_color } = &mut val {
                                     *typing_color = [255, 255, 255];
                                     *bg_color = [0, 0, 0];
+                                } else if let Effects::MultiRipple { bg_color, width } = &mut val {
+                                    *bg_color = [0, 0, 0];
+                                    *width = 0.5;
                                 }
                                 let text: &'static str = val.into();
                                 if ui.selectable_value(&mut self.current_profile.effect, val, text).clicked() {

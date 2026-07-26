@@ -6,7 +6,13 @@ pub fn play(manager: &mut Inner) {
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
     let host = cpal::default_host();
-    let device = match host.default_input_device() {
+    
+    #[cfg(target_os = "windows")]
+    let device_opt = host.default_output_device();
+    #[cfg(not(target_os = "windows"))]
+    let device_opt = host.default_input_device();
+
+    let device = match device_opt {
         Some(d) => d,
         None => {
             while !manager.stop_signals.manager_stop_signal.load(Ordering::SeqCst) {
@@ -16,7 +22,12 @@ pub fn play(manager: &mut Inner) {
         }
     };
     
-    let config = match device.default_input_config() {
+    #[cfg(target_os = "windows")]
+    let config_res = device.default_output_config();
+    #[cfg(not(target_os = "windows"))]
+    let config_res = device.default_input_config();
+
+    let config = match config_res {
         Ok(c) => c,
         Err(_) => {
             while !manager.stop_signals.manager_stop_signal.load(Ordering::SeqCst) {
