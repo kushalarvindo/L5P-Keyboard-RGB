@@ -2,6 +2,7 @@ use std::{sync::atomic::Ordering, thread, time::Duration};
 
 use crate::manager::Inner;
 
+#[allow(unused_mut, unused_variables)]
 fn get_colors(use_accent: bool, hot_color: [u8; 3], cool_color: [u8; 3]) -> ([f32; 12], [f32; 12]) {
     let mut hot = hot_color;
     #[cfg(target_os = "windows")]

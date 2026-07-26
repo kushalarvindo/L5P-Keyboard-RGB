@@ -165,8 +165,6 @@ impl App {
         }
 
         let egui_ctx = cc.egui_ctx.clone();
-        let gui_tx = self.gui_tx.clone();
-        let has_tray = self.has_tray.clone();
 
         let wake_socket = std::net::UdpSocket::bind("127.0.0.1:48294").ok();
         if let Some(sock) = &wake_socket {

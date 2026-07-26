@@ -5,7 +5,7 @@ use sysinfo::{System, CpuRefreshKind, RefreshKind};
 
 pub fn play(manager: &mut Inner) {
     let mut sys = System::new_with_specifics(
-        RefreshKind::new().with_cpu(CpuRefreshKind::everything()).with_memory(),
+        RefreshKind::nothing().with_cpu(CpuRefreshKind::everything()).with_memory(),
     );
     
     // Need to sleep once before getting cpu usage
