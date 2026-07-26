@@ -44,7 +44,7 @@ pub fn play(manager: &mut Inner, bg_color: [u8; 3], speed: u8, width: f32) {
     let device_state = DeviceState::new();
     let mut last_keys: Vec<Keycode> = vec![];
     let mut ripples: Vec<Ripple> = Vec::new();
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
 
     // Speed multiplier, speed is 0-255
     let speed_mult = 0.5 + (speed as f32 / 255.0) * 2.0;
@@ -56,9 +56,9 @@ pub fn play(manager: &mut Inner, bg_color: [u8; 3], speed: u8, width: f32) {
             if !last_keys.contains(key) {
                 // Spawn a new ripple!
                 let color = [
-                    rng.gen_range(50.0..255.0),
-                    rng.gen_range(50.0..255.0),
-                    rng.gen_range(50.0..255.0),
+                    rng.gen_range(50.0_f32..255.0_f32),
+                    rng.gen_range(50.0_f32..255.0_f32),
+                    rng.gen_range(50.0_f32..255.0_f32),
                 ];
                 
                 ripples.push(Ripple {
