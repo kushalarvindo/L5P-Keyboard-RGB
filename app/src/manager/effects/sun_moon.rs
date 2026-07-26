@@ -1,53 +1,80 @@
-use std::{sync::atomic::Ordering, thread, time::Duration};
+use std::{
+    sync::atomic::Ordering,
+    thread,
+    time::Duration,
+};
+
 use chrono::{Local, Timelike};
 use crate::manager::Inner;
 
 pub fn play(manager: &mut Inner) {
     while !manager.stop_signals.manager_stop_signal.load(Ordering::SeqCst) {
         let now = Local::now();
-        let seconds_since_midnight = now.hour() * 3600 + now.minute() * 60 + now.second();
+        let hour = now.hour();
+        let minute = now.minute();
+        let second = now.second();
+        
+        let time_in_hours = hour as f32 + (minute as f32 / 60.0) + (second as f32 / 3600.0);
+        
+        let is_daytime = time_in_hours >= 6.0 && time_in_hours < 18.0;
         
         let mut target = [0; 12];
         
-        let sun_color: [f32; 3] = [255.0, 180.0, 0.0];
-        let day_sky: [f32; 3] = [60.0, 150.0, 255.0];
-        let moon_color: [f32; 3] = [255.0, 255.0, 255.0];
-        let night_sky: [f32; 3] = [5.0, 5.0, 40.0];
-        
-        // 6 AM is 21600 seconds, 6 PM is 64800 seconds
-        let is_day = seconds_since_midnight >= 21600 && seconds_since_midnight < 64800;
-        
-        let (fg_color, bg_color, progress) = if is_day {
-            let progress = (seconds_since_midnight - 21600) as f32 / 43200.0;
-            (sun_color, day_sky, progress)
+        // Background color
+        let (bg_r, bg_g, bg_b) = if is_daytime {
+            (135, 206, 235) // Sky Blue
         } else {
-            let mut shifted = seconds_since_midnight;
-            if shifted < 21600 {
-                shifted += 86400; // Add 24 hours if it's past midnight
-            }
-            let progress = (shifted - 64800) as f32 / 43200.0;
-            (moon_color, night_sky, progress)
+            (10, 10, 40) // Dark Blue
         };
         
-        // Progress goes from 0.0 to 1.0. Map it across the 4 zones (0 to 3).
-        let position = progress * 3.0;
-        
-        for zone in 0..4 {
-            // Distance from the celestial body to this zone
-            let distance = (position - zone as f32).abs();
-            // Brightness factor (1.0 when perfectly centered, drops to 0.0 when 1 zone away)
-            let blend = (1.0 - distance).max(0.0).min(1.0);
+        for i in 0..4 {
+            target[i * 3] = bg_r;
+            target[i * 3 + 1] = bg_g;
+            target[i * 3 + 2] = bg_b;
+        }
+
+        // Celestial body color (Sun = Yellow/Orange, Moon = White/Silver)
+        let (body_r, body_g, body_b) = if is_daytime {
+            (255, 200, 0) // Sun
+        } else {
+            (200, 200, 255) // Moon
+        };
+
+        // Calculate position based on the 12-hour period
+        // For day: 6:00 is pos 0, 18:00 is pos 4
+        // For night: 18:00 is pos 0, 6:00 is pos 4
+        let pos = if is_daytime {
+            ((time_in_hours - 6.0) / 12.0) * 4.0
+        } else {
+            let mut night_hours = time_in_hours - 18.0;
+            if night_hours < 0.0 {
+                night_hours += 24.0;
+            }
+            (night_hours / 12.0) * 4.0
+        };
+
+        // Draw the body smoothly across zones
+        for z in 0..4 {
+            let dist = (z as f32 + 0.5 - pos).abs();
+            // width of celestial body
+            let width = 0.8;
             
-            // Blend foreground and background
-            for color_idx in 0..3 {
-                let r = bg_color[color_idx] + (fg_color[color_idx] - bg_color[color_idx]) * blend;
-                target[zone * 3 + color_idx] = r as u8;
+            if dist < width {
+                let intensity = 1.0 - (dist / width);
+                
+                let cur_r = target[z * 3] as f32;
+                let cur_g = target[z * 3 + 1] as f32;
+                let cur_b = target[z * 3 + 2] as f32;
+                
+                target[z * 3] = (cur_r + (body_r as f32 - cur_r) * intensity) as u8;
+                target[z * 3 + 1] = (cur_g + (body_g as f32 - cur_g) * intensity) as u8;
+                target[z * 3 + 2] = (cur_b + (body_b as f32 - cur_b) * intensity) as u8;
             }
         }
+
+        let _ = manager.keyboard.transition_colors_to(&target, 5, 1);
         
-        let _ = manager.keyboard.transition_colors_to(&target, 50, 1);
-        
-        // Update every 1 second
-        thread::sleep(Duration::from_millis(1000));
+        // We only need to update occasionally since it's based on time
+        thread::sleep(Duration::from_millis(500));
     }
 }

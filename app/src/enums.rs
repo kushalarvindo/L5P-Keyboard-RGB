@@ -30,7 +30,6 @@ pub enum Effects {
         hot_color: [u8; 3],
         cool_color: [u8; 3],
     },
-    SunMoon,
     Ripple,
     Reactive {
         typing_color: [u8; 3],
@@ -42,6 +41,7 @@ pub enum Effects {
         bg_color: [u8; 3],
         width: f32,
     },
+    SunMoon,
 }
 
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, EnumIter, EnumString, PartialEq)]

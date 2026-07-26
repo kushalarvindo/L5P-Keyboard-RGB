@@ -113,6 +113,13 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 });
             });
         }
+        Effects::SunMoon => {
+            ui.scope(|ui| {
+                ui.style_mut().spacing.item_spacing = theme.spacing.default;
+                show_brightness(ui, profile, update_lights);
+                ui.label("Sun/Moon position updates automatically based on system time.");
+            });
+        }
         _ => {
             default_ui::show(ui, profile, update_lights, &theme.spacing);
         }
