@@ -1,11 +1,14 @@
 use std::{
     collections::HashSet,
-    sync::atomic::Ordering,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     thread,
     time::{Duration, Instant},
 };
 
-use device_query::Keycode;
+use device_query::{DeviceEvents, DeviceEventsHandler, Keycode};
 
 use crate::manager::{
     profile::Profile,
@@ -21,41 +24,80 @@ enum RippleMove {
 }
 
 pub fn play(manager: &mut Inner, p: &Profile) {
-    let device_state = device_query::DeviceState::new();
-    let mut last_keys: Vec<Keycode> = vec![];
-    
+    // Welcome to the definition of i-don't-know-what-im-doing
+    let stop_signals = manager.stop_signals.clone();
+
+    let kill_thread = Arc::new(AtomicBool::new(false));
+    let exit_thread = kill_thread.clone();
+
+    enum Event {
+        KeyPress(Keycode),
+        KeyRelease(Keycode),
+    }
+
+    let (tx, rx) = crossbeam_channel::unbounded::<Event>();
+
+    thread::spawn(move || {
+        // Do this in order to avoid having to store the event handler struct somewhere,
+        // since it saves no data and serves only as a fancy function proxy for interacting with the real event loop
+        // This keeps the effect self contained, and other effects should probably use the same pattern
+        let event_handler = DeviceEventsHandler::new(Duration::from_millis(10)).unwrap_or(DeviceEventsHandler {});
+
+        // tx_clone.send(Event::KeyPress(Keycode::Meta)).unwrap();
+        let tx_clone = tx.clone();
+
+        let press_guard = event_handler.on_key_down(move |key| {
+            stop_signals.keyboard_stop_signal.store(true, Ordering::SeqCst);
+
+            let _ = tx_clone.send(Event::KeyPress(*key));
+        });
+
+        let release_guard = event_handler.on_key_up(move |key| {
+            let _ = tx.send(Event::KeyRelease(*key));
+        });
+
+        loop {
+            if exit_thread.load(Ordering::SeqCst) {
+                drop(press_guard);
+                drop(release_guard);
+                break;
+            }
+
+            thread::sleep(Duration::from_millis(5));
+        }
+    });
+
     let mut zone_pressed: [HashSet<Keycode>; 4] = [HashSet::new(), HashSet::new(), HashSet::new(), HashSet::new()];
     let mut zone_state: [RippleMove; 4] = [RippleMove::Off, RippleMove::Off, RippleMove::Off, RippleMove::Off];
 
     let mut last_step_time = Instant::now();
 
     while !manager.stop_signals.manager_stop_signal.load(Ordering::SeqCst) {
-        let keys = device_state.get_keys();
-        
-        // Find newly pressed keys
-        for key in &keys {
-            if !last_keys.contains(key) {
-                for (i, zone) in KEY_ZONES.iter().enumerate() {
-                    if zone.contains(key) {
-                        zone_pressed[i].insert(*key);
+        match rx.try_recv() {
+            Ok(event) => match event {
+                Event::KeyPress(key) => {
+                    for (i, zone) in KEY_ZONES.iter().enumerate() {
+                        if zone.contains(&key) {
+                            zone_pressed[i].insert(key);
+                        }
                     }
-                }
-                manager.stop_signals.keyboard_stop_signal.store(false, Ordering::SeqCst);
-            }
-        }
 
-        // Find newly released keys
-        for key in &last_keys {
-            if !keys.contains(key) {
-                for (i, zone) in KEY_ZONES.iter().enumerate() {
-                    if zone.contains(key) {
-                        zone_pressed[i].remove(key);
+                    manager.stop_signals.keyboard_stop_signal.store(false, Ordering::SeqCst);
+                }
+                Event::KeyRelease(key) => {
+                    for (i, zone) in KEY_ZONES.iter().enumerate() {
+                        if zone.contains(&key) {
+                            zone_pressed[i].remove(&key);
+                        }
                     }
+                }
+            },
+            Err(err) => {
+                if err == crossbeam_channel::TryRecvError::Disconnected {
+                    break;
                 }
             }
         }
-        
-        last_keys = keys;
 
         zone_state = advance_zone_state(zone_state, &mut last_step_time, &p.speed);
 
@@ -77,6 +119,8 @@ pub fn play(manager: &mut Inner, p: &Profile) {
         manager.keyboard.transition_colors_to(&final_arr, 20, 0).unwrap();
         thread::sleep(Duration::from_millis(50));
     }
+
+    kill_thread.store(true, Ordering::SeqCst);
 }
 
 fn advance_zone_state(zone_state: [RippleMove; 4], last_step_time: &mut Instant, speed: &u8) -> [RippleMove; 4] {
