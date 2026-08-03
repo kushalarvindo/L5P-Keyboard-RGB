@@ -48,16 +48,10 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
                     {
                         try_gdi = 0;
                     }
-                    
-                    let elapsed_time = now.elapsed();
-                    if elapsed_time < seconds_per_frame {
-                        thread::sleep(seconds_per_frame - elapsed_time);
-                    }
                 }
                 Err(error) => match error.kind() {
                     std::io::ErrorKind::WouldBlock =>
                     {
-                        thread::sleep(Duration::from_millis(2));
                         #[cfg(target_os = "windows")]
                         if try_gdi > 0 && !capturer.is_gdi() {
                             if try_gdi > 3 {
@@ -69,7 +63,6 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
                     }
                     _ =>
                     {
-                        thread::sleep(Duration::from_millis(2));
                         #[cfg(windows)]
                         if !capturer.is_gdi() {
                             capturer.set_gdi();
@@ -77,6 +70,11 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
                         }
                     }
                 },
+            }
+
+            let elapsed_time = now.elapsed();
+            if elapsed_time < seconds_per_frame {
+                thread::sleep(seconds_per_frame - elapsed_time);
             }
         }
     }
