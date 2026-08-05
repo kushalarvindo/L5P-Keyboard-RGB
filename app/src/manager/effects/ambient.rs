@@ -34,30 +34,27 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
 
         #[cfg(target_os = "windows")]
         let mut try_gdi = 1;
+        
+        let mut last_update = Instant::now();
 
         while !manager.stop_signals.keyboard_stop_signal.load(Ordering::SeqCst) {
-            let now = Instant::now();
-
             #[allow(clippy::single_match)]
             match capturer.frame(seconds_per_frame) {
                 Ok(frame) => {
-                    let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
-
-                    manager.keyboard.set_colors_to(&rgb).unwrap();
+                    // Drain the frame queue to prevent 1-second lag, but only update keyboard at the requested FPS
+                    if last_update.elapsed() >= seconds_per_frame {
+                        let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
+                        manager.keyboard.set_colors_to(&rgb).unwrap();
+                        last_update = Instant::now();
+                    }
                     #[cfg(target_os = "windows")]
                     {
                         try_gdi = 0;
-                    }
-                    
-                    let elapsed_time = now.elapsed();
-                    if elapsed_time < seconds_per_frame {
-                        thread::sleep(seconds_per_frame - elapsed_time);
                     }
                 }
                 Err(error) => match error.kind() {
                     std::io::ErrorKind::WouldBlock =>
                     {
-                        thread::sleep(Duration::from_millis(2));
                         #[cfg(target_os = "windows")]
                         if try_gdi > 0 && !capturer.is_gdi() {
                             if try_gdi > 3 {
@@ -69,7 +66,6 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
                     }
                     _ =>
                     {
-                        thread::sleep(Duration::from_millis(2));
                         #[cfg(windows)]
                         if !capturer.is_gdi() {
                             capturer.set_gdi();
