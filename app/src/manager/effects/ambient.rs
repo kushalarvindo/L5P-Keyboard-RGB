@@ -17,7 +17,7 @@ struct ScreenDimensions {
     dest: (u32, u32),
 }
 
-pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
+pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: bool) {
     while !manager.stop_signals.manager_stop_signal.load(Ordering::SeqCst) {
         //Display setup
         let display = Display::all().unwrap().remove(0);
@@ -47,7 +47,7 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
                     if last_update.elapsed() >= seconds_per_frame {
                         let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
                         
-                        if first_frame {
+                        if first_frame || !smoothness {
                             for i in 0..12 {
                                 current_colors[i] = rgb[i] as f32;
                             }

@@ -13,6 +13,8 @@ pub enum Effects {
     AmbientLight {
         fps: u8,
         saturation_boost: f32,
+        #[serde(default)]
+        smoothness: bool,
     },
     SmoothWave {
         mode: SwipeMode,

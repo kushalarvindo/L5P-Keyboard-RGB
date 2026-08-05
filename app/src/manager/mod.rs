@@ -189,10 +189,10 @@ impl Inner {
                 self.keyboard.set_effect(effect).unwrap();
             }
             Effects::Lightning => lightning::play(self, profile, rng),
-            Effects::AmbientLight { mut fps, mut saturation_boost } => {
-                fps = fps.clamp(1, 60);
+            Effects::AmbientLight { mut fps, mut saturation_boost, smoothness } => {
+                fps = fps.clamp(1, 144);
                 saturation_boost = saturation_boost.clamp(0.0, 1.0);
-                ambient::play(self, fps, saturation_boost);
+                ambient::play(self, fps, saturation_boost, smoothness);
             }
             Effects::SmoothWave { mode, clean_with_black } => {
                 profile.rgb_zones = profile::arr_to_zones([255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255]);

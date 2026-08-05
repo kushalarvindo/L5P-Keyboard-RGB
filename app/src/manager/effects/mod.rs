@@ -37,7 +37,7 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 *update_lights |= ui.add_enabled(matches!(mode, SwipeMode::Fill), egui::Checkbox::new(clean_with_black, "Clean with black")).changed();
             });
         }
-        Effects::AmbientLight { fps, saturation_boost } => {
+        Effects::AmbientLight { fps, saturation_boost, smoothness } => {
             ui.scope(|ui| {
                 ui.style_mut().spacing.item_spacing = theme.spacing.default;
 
@@ -45,13 +45,14 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 show_direction(ui, profile, update_lights);
 
                 ui.horizontal(|ui| {
-                    *update_lights |= ui.add(Slider::new(fps, 1..=60)).changed();
+                    *update_lights |= ui.add(Slider::new(fps, 1..=144)).changed();
                     ui.label("FPS");
                 });
                 ui.horizontal(|ui| {
                     *update_lights |= ui.add(Slider::new(saturation_boost, 0.0..=1.0)).changed();
                     ui.label("Saturation Boost");
                 });
+                *update_lights |= ui.add(egui::Checkbox::new(smoothness, "Smooth Transitions")).changed();
             });
         }
         _ => {
