@@ -36,6 +36,8 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
         let mut try_gdi = 1;
         
         let mut last_update = Instant::now();
+        let mut current_colors = [0f32; 12];
+        let mut first_frame = true;
 
         while !manager.stop_signals.keyboard_stop_signal.load(Ordering::SeqCst) {
             #[allow(clippy::single_match)]
@@ -44,7 +46,26 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32) {
                     // Drain the frame queue to prevent 1-second lag, but only update keyboard at the requested FPS
                     if last_update.elapsed() >= seconds_per_frame {
                         let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
-                        manager.keyboard.set_colors_to(&rgb).unwrap();
+                        
+                        if first_frame {
+                            for i in 0..12 {
+                                current_colors[i] = rgb[i] as f32;
+                            }
+                            first_frame = false;
+                        } else {
+                            // Exponential moving average for smooth color transitions
+                            let alpha = 0.3; // Smoothing factor for buttery smooth transitions
+                            for i in 0..12 {
+                                current_colors[i] = current_colors[i] + alpha * (rgb[i] as f32 - current_colors[i]);
+                            }
+                        }
+                        
+                        let mut final_rgb = [0u8; 12];
+                        for i in 0..12 {
+                            final_rgb[i] = current_colors[i].round() as u8;
+                        }
+
+                        manager.keyboard.set_colors_to(&final_rgb).unwrap();
                         last_update = Instant::now();
                     }
                     #[cfg(target_os = "windows")]
@@ -101,8 +122,9 @@ fn process_frame(frame: Frame, dimensions: ScreenDimensions, resizer: &mut Resiz
     // let mut dst_view = dst_image.view_mut();
 
     // Create Resizer instance and resize source image
-    // into buffer of destination image
-    resizer.resize(&src_image, &mut dst_image, None).unwrap();
+    // into buffer of destination image using Box filter for maximum performance
+    let options = fr::ResizeOptions::new().resize_alg(fr::ResizeAlg::Convolution(fr::FilterType::Box));
+    resizer.resize(&src_image, &mut dst_image, Some(&options)).unwrap();
 
     // Divide RGB channels of destination image by alpha
     // alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
