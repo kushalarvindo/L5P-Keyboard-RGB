@@ -1102,6 +1102,7 @@ dependencies = [
  "iana-time-zone",
  "js-sys",
  "num-traits 0.2.19",
+ "serde 1.0.228",
  "wasm-bindgen",
  "windows-link 0.2.1",
 ]
@@ -3688,6 +3689,7 @@ name = "legion-kb-rgb"
 version = "0.20.8"
 dependencies = [
  "auto-launch",
+ "chrono",
  "clap 4.5.54",
  "color-eyre",
  "crossbeam-channel",
@@ -6803,6 +6805,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "temp_wmi_test"
+version = "0.1.0"
+dependencies = [
+ "serde 1.0.228",
+ "wmi",
+]
+
+[[package]]
 name = "tempfile"
 version = "3.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8597,6 +8607,21 @@ name = "wit-bindgen"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f17a85883d4e6d00e8a97c586de764dabcc06133f7f1d55dce5cdc070ad7fe59"
+
+[[package]]
+name = "wmi"
+version = "0.18.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c81b85c57a57500e56669586496bf2abd5cf082b9d32995251185d105208b64"
+dependencies = [
+ "chrono",
+ "futures",
+ "log",
+ "serde 1.0.228",
+ "thiserror 2.0.17",
+ "windows 0.61.3",
+ "windows-core 0.62.2",
+]
 
 [[package]]
 name = "writeable"

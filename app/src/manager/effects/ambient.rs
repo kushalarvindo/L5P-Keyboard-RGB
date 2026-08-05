@@ -4,9 +4,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use fast_image_resize as fr;
-
-use fr::Resizer;
 use scrap::{Capturer, Display, Frame, TraitCapturer, TraitPixelBuffer};
 
 use crate::manager::Inner;
@@ -30,7 +27,6 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
         };
 
         let seconds_per_frame = Duration::from_nanos(1_000_000_000 / u64::from(fps));
-        let mut resizer = fr::Resizer::new();
 
         #[cfg(target_os = "windows")]
         let mut try_gdi = 1;
@@ -45,7 +41,7 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
                 Ok(frame) => {
                     // Drain the frame queue to prevent 1-second lag, but only update keyboard at the requested FPS
                     if last_update.elapsed() >= seconds_per_frame {
-                        let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
+                        let rgb = process_frame(frame, dimensions, saturation_boost);
                         
                         if first_frame || !smoothness {
                             for i in 0..12 {
@@ -99,51 +95,43 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
     }
 }
 
-fn process_frame(frame: Frame, dimensions: ScreenDimensions, resizer: &mut Resizer, saturation_boost: f32) -> [u8; 12] {
-    // Adapted from https://github.com/Cykooz/fast_image_resize#resize-image
-    // Read source image from file
-
-    // HACK: Override opacity manually to ensure some kind of output because of jank elsewhere
+fn process_frame(frame: Frame, dimensions: ScreenDimensions, saturation_boost: f32) -> [u8; 12] {
     let Frame::PixelBuffer(buf) = frame else {
         unreachable!("Attempted to extract vec from Texture variant in the Ambient effect");
     };
 
-    let frame_vec = buf.data().to_vec();
-    // for rgba in frame_vec.chunks_exact_mut(4) {
-    //     rgba[3] = 255;
-    // }
-
-    let src_image = fr::images::Image::from_vec_u8(dimensions.src.0, dimensions.src.1, frame_vec, fr::PixelType::U8x4).unwrap();
-
-    // Create container for data of destination image
-    let mut dst_image = fr::images::Image::new(dimensions.dest.0, dimensions.dest.1, fr::PixelType::U8x4);
-
-    // Get mutable view of destination image data
-    // let mut dst_view = dst_image.view_mut();
-
-    // Create Resizer instance and resize source image
-    // into buffer of destination image using Box filter for maximum performance
-    let options = fr::ResizeOptions::new().resize_alg(fr::ResizeAlg::Convolution(fr::FilterType::Box));
-    resizer.resize(&src_image, &mut dst_image, Some(&options)).unwrap();
-
-    // Divide RGB channels of destination image by alpha
-    // alpha_mul_div.divide_alpha_inplace(&mut dst_view).unwrap();
-
-    let bgr_arr = dst_image.buffer();
-
-    // BGRA -> RGBA
-    let mut rgba: [u8; 16] = [0; 16];
-    for (src, dst) in bgr_arr.chunks_exact(4).zip(rgba.chunks_exact_mut(4)) {
-        dst[0] = src[2];
-        dst[1] = src[1];
-        dst[2] = src[0];
-        dst[3] = src[3];
+    let frame_vec = buf.data();
+    let width = dimensions.src.0 as usize;
+    let height = dimensions.src.1 as usize;
+    let slice_width = width / 4;
+    
+    // Sample pixels across the horizontal center of the screen
+    let y = height / 2;
+    let mut rgba = [0u8; 16];
+    
+    for zone in 0..4 {
+        // Find the center X coordinate of the zone
+        let x = zone * slice_width + (slice_width / 2);
+        
+        // Calculate the flat array index (BGRA format is 4 bytes per pixel)
+        let idx = (y * width + x) * 4;
+        
+        // Bounds check just in case
+        if idx + 2 < frame_vec.len() {
+            let b = frame_vec[idx];
+            let g = frame_vec[idx + 1];
+            let r = frame_vec[idx + 2];
+            
+            rgba[zone * 4] = r;
+            rgba[zone * 4 + 1] = g;
+            rgba[zone * 4 + 2] = b;
+            rgba[zone * 4 + 3] = 255;
+        }
     }
 
     let mut img = photon_rs::PhotonImage::new(rgba.to_vec(), 4, 1);
     photon_rs::colour_spaces::saturate_hsv(&mut img, saturation_boost);
 
-    // RGBA -> RGB
     let raw = img.get_raw_pixels();
     let mut rgb: [u8; 12] = [0; 12];
     for (src, dst) in raw.chunks_exact(4).zip(rgb.chunks_exact_mut(3)) {

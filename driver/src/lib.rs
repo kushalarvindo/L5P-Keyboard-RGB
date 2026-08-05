@@ -11,7 +11,8 @@ use std::{
 
 pub mod error;
 
-const KNOWN_DEVICE_INFOS: [(u16, u16, u16, u16); 11] = [
+const KNOWN_DEVICE_INFOS: [(u16, u16, u16, u16); 12] = [
+    (0x048d, 0xc693, 0xff89, 0x00cc), // 2024 LOQ 15IRX9 (estimated PID)
     (0x048d, 0xc995, 0xff89, 0x00cc), // 2024 Pro
     (0x048d, 0xc994, 0xff89, 0x00cc), // 2024
     (0x048d, 0xc993, 0xff89, 0x00cc), // 2024 LOQ
@@ -93,6 +94,9 @@ impl Keyboard {
         let payload = self.build_payload()?;
 
         self.keyboard_hid.send_feature_report(&payload).unwrap();
+
+        // Throttle USB packet dispatch to fix stuttering on LOQ models (Issue #274)
+        thread::sleep(Duration::from_millis(15));
 
         Ok(())
     }

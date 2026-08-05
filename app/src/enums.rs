@@ -27,8 +27,23 @@ pub enum Effects {
     Disco,
     Christmas,
     Fade,
-    Temperature,
+    Temperature {
+        use_accent: bool,
+        hot_color: [u8; 3],
+        cool_color: [u8; 3],
+    },
     Ripple,
+    Reactive {
+        typing_color: [u8; 3],
+        bg_color: [u8; 3],
+    },
+    SystemLoad,
+    AudioVisualizer,
+    MultiRipple {
+        bg_color: [u8; 3],
+        width: f32,
+    },
+    SunMoon,
 }
 
 #[derive(Default, Debug, Clone, Copy, Serialize, Deserialize, EnumIter, EnumString, PartialEq)]
@@ -57,7 +72,7 @@ impl Effects {
     pub fn takes_speed(self) -> bool {
         matches!(
             self,
-            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple
+            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple | Self::Reactive { .. } | Self::MultiRipple { .. }
         )
     }
 

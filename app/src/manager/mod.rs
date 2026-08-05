@@ -1,7 +1,7 @@
 use crate::enums::{Direction, Effects, Message};
 
 use crossbeam_channel::{Receiver, Sender};
-use effects::{ambient, christmas, disco, fade, lightning, ripple, swipe, temperature};
+use effects::{ambient, christmas, disco, fade, lightning, ripple, swipe, temperature, sun_moon, reactive, system_load, audio, multi_ripple};
 use error_stack::{Result, ResultExt};
 use legion_rgb_driver::{BaseEffects, Keyboard, SPEED_RANGE};
 use profile::Profile;
@@ -202,8 +202,13 @@ impl Inner {
             Effects::Disco => disco::play(self, profile, rng),
             Effects::Christmas => christmas::play(self, rng),
             Effects::Fade => fade::play(self, profile),
-            Effects::Temperature => temperature::play(self),
+            Effects::Temperature { use_accent, hot_color, cool_color } => temperature::play(self, use_accent, hot_color, cool_color),
+            Effects::SunMoon => sun_moon::play(self),
             Effects::Ripple => ripple::play(self, profile),
+            Effects::Reactive { typing_color, bg_color } => reactive::play(self, profile, typing_color, bg_color),
+            Effects::SystemLoad => system_load::play(self),
+            Effects::AudioVisualizer => audio::play(self),
+            Effects::MultiRipple { bg_color, width } => multi_ripple::play(self, bg_color, profile.speed, width),
         }
     }
 
