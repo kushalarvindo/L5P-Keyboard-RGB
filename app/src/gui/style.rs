@@ -15,7 +15,7 @@ impl Default for Theme {
             visuals: Visuals {
                 selection: Selection {
                     bg_fill: Color32::from_rgb(40, 100, 160),
-                    stroke: Stroke::new(1.0, Color32::from_rgb(192, 222, 255)),
+                    stroke: Stroke::new(1.0_f32, Color32::from_rgb(192, 222, 255)),
                 },
                 ..Visuals::default()
             },
