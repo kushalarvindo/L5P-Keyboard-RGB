@@ -35,36 +35,40 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
         #[cfg(target_os = "windows")]
         let mut try_gdi = 1;
         
+        let mut last_update = Instant::now();
         let mut current_colors = [0f32; 12];
         let mut first_frame = true;
 
         while !manager.stop_signals.keyboard_stop_signal.load(Ordering::SeqCst) {
-            let now = Instant::now();
-
             #[allow(clippy::single_match)]
             match capturer.frame(seconds_per_frame) {
                 Ok(frame) => {
-                    let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
-                    
-                    if first_frame || !smoothness {
-                        for i in 0..12 {
-                            current_colors[i] = rgb[i] as f32;
+                    // Drain the frame queue to prevent 1-second lag, but only update keyboard at the requested FPS
+                    if last_update.elapsed() >= seconds_per_frame {
+                        let rgb = process_frame(frame, dimensions, &mut resizer, saturation_boost);
+                        
+                        if first_frame || !smoothness {
+                            for i in 0..12 {
+                                current_colors[i] = rgb[i] as f32;
+                            }
+                            first_frame = false;
+                        } else {
+                            // Exponential moving average for smooth color transitions
+                            let alpha = 0.3; // Smoothing factor for buttery smooth transitions
+                            for i in 0..12 {
+                                current_colors[i] = current_colors[i] + alpha * (rgb[i] as f32 - current_colors[i]);
+                            }
                         }
-                        first_frame = false;
-                    } else {
-                        // Exponential moving average for smooth color transitions
-                        let alpha = 0.3; // Smoothing factor for buttery smooth transitions
+                        
+                        let mut final_rgb = [0u8; 12];
                         for i in 0..12 {
-                            current_colors[i] = current_colors[i] + alpha * (rgb[i] as f32 - current_colors[i]);
+                            final_rgb[i] = current_colors[i].round() as u8;
                         }
-                    }
-                    
-                    let mut final_rgb = [0u8; 12];
-                    for i in 0..12 {
-                        final_rgb[i] = current_colors[i].round() as u8;
-                    }
 
-                    manager.keyboard.set_colors_to(&final_rgb).unwrap();
+                        manager.keyboard.set_colors_to(&final_rgb).unwrap();
+                        last_update = Instant::now();
+                    }
+                    
                     #[cfg(target_os = "windows")]
                     {
                         try_gdi = 0;
@@ -91,11 +95,6 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
                         }
                     }
                 },
-            }
-
-            let elapsed_time = now.elapsed();
-            if elapsed_time < seconds_per_frame {
-                thread::sleep(seconds_per_frame - elapsed_time);
             }
         }
     }
