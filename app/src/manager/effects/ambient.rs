@@ -29,8 +29,8 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
         let seconds_per_frame = Duration::from_nanos(1_000_000_000 / u64::from(fps));
 
         #[cfg(target_os = "windows")]
-        let mut try_gdi = 1;
-        
+        let mut _try_gdi = 0;
+
         let mut current_colors = [0f32; 12];
         let mut first_frame = true;
 
@@ -61,22 +61,10 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
                     }
 
                     manager.keyboard.set_colors_to(&final_rgb).unwrap();
-                    #[cfg(target_os = "windows")]
-                    {
-                        try_gdi = 0;
-                    }
                 }
                 Err(error) => match error.kind() {
-                    std::io::ErrorKind::WouldBlock =>
-                    {
-                        #[cfg(target_os = "windows")]
-                        if try_gdi > 0 && !capturer.is_gdi() {
-                            if try_gdi > 3 {
-                                capturer.set_gdi();
-                                try_gdi = 0;
-                            }
-                            try_gdi += 1;
-                        }
+                    std::io::ErrorKind::WouldBlock => {
+                        // DXGI timed out because the screen didn't change. Do nothing, this is normal.
                     }
                     _ =>
                     {
