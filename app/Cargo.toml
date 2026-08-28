@@ -60,6 +60,7 @@ rustfft = "6.2.0"
 
 # Tray icon
 auto-launch = "0.5.0"
+winreg = "0.56.0"
 [target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
 tray-icon = { version = "0.20.1", default-features = false }
 

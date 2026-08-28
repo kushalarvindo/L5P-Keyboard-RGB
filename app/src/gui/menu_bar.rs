@@ -33,7 +33,7 @@ impl MenuBarState {
     }
 
     pub fn show(&mut self, ctx: &Context, ui: &mut egui::Ui, current_profile: &mut Profile, current_effect: &mut LoadedEffect, changed: &mut bool, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings) {
-        self.show_menu(ctx, ui, toasts, app_settings);
+        self.show_menu(ctx, ui, toasts, app_settings, current_profile, changed);
         self.handle_load_profile(ctx, current_profile, changed, toasts);
         self.handle_save_profile(ctx, current_profile, toasts);
         self.handle_load_effect(ctx, current_effect, changed, toasts);
@@ -103,7 +103,7 @@ impl MenuBarState {
     }
 
     #[allow(unused_variables)]
-    fn show_menu(&mut self, ctx: &Context, ui: &mut egui::Ui, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings) {
+    fn show_menu(&mut self, ctx: &Context, ui: &mut egui::Ui, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings, current_profile: &mut Profile, changed: &mut bool) {
         use egui::menu;
         use eframe::epaint::Color32;
         use eframe::egui::RichText;
@@ -147,6 +147,29 @@ impl MenuBarState {
                             }
                         }
                     }
+                    
+                    if ui.button("Use Windows Accent Color").clicked() {
+                        use winreg::enums::*;
+                        use winreg::RegKey;
+                        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
+                        if let Ok(dwm) = hkcu.open_subkey("Software\\Microsoft\\Windows\\DWM") {
+                            if let Ok(color) = dwm.get_value::<u32, _>("ColorizationColor") {
+                                let r = ((color >> 16) & 0xFF) as u8;
+                                let g = ((color >> 8) & 0xFF) as u8;
+                                let b = (color & 0xFF) as u8;
+                                
+                                current_profile.rgb_zones = crate::manager::profile::arr_to_zones([
+                                    r, g, b, r, g, b, r, g, b, r, g, b
+                                ]);
+                                *changed = true;
+                                toasts.success("Applied Windows Accent Color!").duration(Some(Duration::from_millis(3000))).closable(true);
+                            } else {
+                                toasts.error("Could not read accent color.").duration(Some(Duration::from_millis(3000))).closable(true);
+                            }
+                        } else {
+                            toasts.error("Could not access DWM registry key.").duration(Some(Duration::from_millis(3000))).closable(true);
+                        }
+                    }
                 }
                 
                 if ui.checkbox(&mut app_settings.start_minimized, "Start Minimized").changed() {
@@ -166,7 +189,9 @@ impl MenuBarState {
             if ui.button(RichText::new("Reset").color(Color32::RED)).clicked() {
                 crate::settings::Settings::delete();
                 *app_settings = crate::settings::Settings::default();
-                toasts.success("Settings reset to default!").duration(Some(Duration::from_millis(3000))).closable(true);
+                *current_profile = Profile::default();
+                *changed = true;
+                toasts.success("Settings and colors reset to default!").duration(Some(Duration::from_millis(3000))).closable(true);
             }
 
             if !*DENY_HIDING && ui.button("Exit").clicked() {
