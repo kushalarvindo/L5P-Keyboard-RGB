@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use scrap::{Capturer, Display, Frame, TraitCapturer, TraitPixelBuffer};
+use scrap::{Capturer, Display, Frame};
 
 use crate::manager::Inner;
 
@@ -38,9 +38,9 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
             let now = Instant::now();
 
             #[allow(clippy::single_match)]
-            match capturer.frame(seconds_per_frame) {
+            match capturer.frame() {
                 Ok(frame) => {
-                    let rgb = process_frame(frame, dimensions, saturation_boost);
+                    let rgb = process_frame(&frame, dimensions, saturation_boost);
                     
                     if first_frame || !smoothness {
                         for i in 0..12 {
@@ -66,14 +66,7 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
                     std::io::ErrorKind::WouldBlock => {
                         // DXGI timed out because the screen didn't change. Do nothing, this is normal.
                     }
-                    _ =>
-                    {
-                        #[cfg(windows)]
-                        if !capturer.is_gdi() {
-                            capturer.set_gdi();
-                            continue;
-                        }
-                    }
+                    _ => {}
                 },
             }
 
@@ -85,12 +78,7 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
     }
 }
 
-fn process_frame(frame: Frame, dimensions: ScreenDimensions, saturation_boost: f32) -> [u8; 12] {
-    let Frame::PixelBuffer(buf) = frame else {
-        unreachable!("Attempted to extract vec from Texture variant in the Ambient effect");
-    };
-
-    let frame_vec = buf.data(); // Use a zero-allocation reference slice directly!
+fn process_frame(frame_vec: &[u8], dimensions: ScreenDimensions, saturation_boost: f32) -> [u8; 12] {
     let width = dimensions.src.0 as usize;
     let height = dimensions.src.1 as usize;
     let slice_width = width / 4;
