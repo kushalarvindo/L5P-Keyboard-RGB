@@ -4,7 +4,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use scrap::{Capturer, Display, Frame};
+use scrap::{Capturer, Display};
 
 use crate::manager::Inner;
 
