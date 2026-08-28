@@ -63,16 +63,7 @@ jobs:
           fi
         shell: bash
 
-      - name: Set up VCPKG deps
-        uses: lukka/run-vcpkg@v11
-        id: runvcpkg
-        # if: ${{ runner.os != 'Linux' }}
-        with:
-          vcpkgGitCommitId: '${{ matrix.vcpkgCommitId }}'
-          # Run vcpkg with the command specified by the `runVcpkgFormatString` input.
-          runVcpkgInstall: true
-          vcpkgJsonGlob: '**/vcpkg.json'
-          vcpkgDirectory: '${{ github.workspace }}/vcpkg'
+
 
       # - name: Prints output of run-vcpkg's action.
       #   run: echo "root='${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_ROOT_OUT }}', triplet='${{ steps.runvcpkg.outputs.RUNVCPKG_VCPKG_DEFAULT_TRIPLET_OUT }}' "
