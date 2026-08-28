@@ -17,9 +17,21 @@ struct ScreenDimensions {
 pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: bool) {
     while !manager.stop_signals.manager_stop_signal.load(Ordering::SeqCst) {
         //Display setup
-        let display = Display::all().unwrap().remove(0);
+        let display = match Display::all() {
+            Ok(mut displays) if !displays.is_empty() => displays.remove(0),
+            _ => {
+                thread::sleep(Duration::from_secs(1));
+                continue;
+            }
+        };
 
-        let mut capturer = Capturer::new(display).expect("Couldn't begin capture.");
+        let mut capturer = match Capturer::new(display) {
+            Ok(c) => c,
+            Err(_) => {
+                thread::sleep(Duration::from_secs(1));
+                continue;
+            }
+        };
 
         let dimensions = ScreenDimensions {
             src: (capturer.width() as u32, capturer.height() as u32),
@@ -66,7 +78,11 @@ pub fn play(manager: &mut Inner, fps: u8, saturation_boost: f32, smoothness: boo
                     std::io::ErrorKind::WouldBlock => {
                         // DXGI timed out because the screen didn't change. Do nothing, this is normal.
                     }
-                    _ => {}
+                    _ => {
+                        // Capturer failed (e.g. UAC prompt, resolution change, display sleep). 
+                        // Break inner loop to re-initialize!
+                        break;
+                    }
                 },
             }
 
