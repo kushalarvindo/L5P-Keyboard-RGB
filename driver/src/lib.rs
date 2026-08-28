@@ -93,7 +93,7 @@ impl Keyboard {
     pub fn refresh(&mut self) -> Result<()> {
         let payload = self.build_payload()?;
 
-        self.keyboard_hid.send_feature_report(&payload).unwrap();
+        let _ = self.keyboard_hid.send_feature_report(&payload);
 
         // Throttle USB packet dispatch to fix stuttering on LOQ models (Issue #274)
         thread::sleep(Duration::from_millis(15));
