@@ -132,7 +132,7 @@ pub fn play(manager: &mut Inner, sensitivity: f32) {
             target[z * 3 + 2] = z_b;
         }
         
-        let _ = manager.keyboard.transition_colors_to(&target, 5, 1);
-        thread::sleep(Duration::from_millis(30));
+        let _ = manager.keyboard.set_colors_to(&target);
+        thread::sleep(Duration::from_millis(10));
     }
 }

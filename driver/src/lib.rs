@@ -171,12 +171,24 @@ impl Keyboard {
     pub fn transition_colors_to(&mut self, target_colors: &[u8; 12], steps: u8, delay_between_steps: u64) -> Result<()> {
         if let BaseEffects::Static | BaseEffects::Breath = self.current_state.effect_type {
             let mut new_values = self.current_state.rgb_values.map(f32::from);
+            
+            // Adjust steps and delay to account for the mandatory 15ms USB throttle in `refresh()`
+            let intended_duration_ms = (steps as u64) * delay_between_steps;
+            let actual_delay_per_step = std::cmp::max(delay_between_steps, 15);
+            let actual_steps = if intended_duration_ms == 0 {
+                // If 0 delay was requested, the original intent was a very fast transition.
+                // Cap at 3 steps so it doesn't stutter or block for a long time.
+                std::cmp::min(steps, 3) 
+            } else {
+                std::cmp::max(1, (intended_duration_ms / actual_delay_per_step) as u8)
+            };
+            
             let mut color_differences: [f32; 12] = [0.0; 12];
             for index in 0..12 {
-                color_differences[index] = (f32::from(target_colors[index]) - f32::from(self.current_state.rgb_values[index])) / f32::from(steps);
+                color_differences[index] = (f32::from(target_colors[index]) - f32::from(self.current_state.rgb_values[index])) / f32::from(actual_steps);
             }
             if !self.stop_signal.load(Ordering::SeqCst) {
-                for _step_num in 1..=steps {
+                for _step_num in 1..=actual_steps {
                     if self.stop_signal.load(Ordering::SeqCst) {
                         break;
                     }
@@ -186,7 +198,10 @@ impl Keyboard {
                     self.current_state.rgb_values = new_values.map(|val| val as u8);
 
                     self.refresh()?;
-                    thread::sleep(Duration::from_millis(delay_between_steps));
+                    let remaining_delay = delay_between_steps.saturating_sub(15);
+                    if remaining_delay > 0 {
+                        thread::sleep(Duration::from_millis(remaining_delay));
+                    }
                 }
                 self.set_colors_to(target_colors)?;
             }
