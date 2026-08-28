@@ -2,6 +2,10 @@ use crate::manager::{custom_effect::CustomEffect, profile::Profile};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter, EnumString, IntoStaticStr};
 
+fn default_sensitivity() -> f32 {
+    1.0
+}
+
 #[derive(Clone, Copy, EnumString, Serialize, Deserialize, Display, EnumIter, Debug, IntoStaticStr, Default)]
 pub enum Effects {
     #[default]
@@ -33,15 +37,10 @@ pub enum Effects {
         cool_color: [u8; 3],
     },
     Ripple,
-    Reactive {
-        typing_color: [u8; 3],
-        bg_color: [u8; 3],
-    },
     SystemLoad,
-    AudioVisualizer,
-    MultiRipple {
-        bg_color: [u8; 3],
-        width: f32,
+    AudioVisualizer {
+        #[serde(default = "default_sensitivity")]
+        sensitivity: f32,
     },
     SunMoon,
 }
@@ -72,7 +71,7 @@ impl Effects {
     pub fn takes_speed(self) -> bool {
         matches!(
             self,
-            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple | Self::Reactive { .. } | Self::MultiRipple { .. }
+            Self::Breath | Self::Smooth | Self::Wave | Self::Lightning | Self::SmoothWave { .. } | Self::Swipe { .. } | Self::Disco | Self::Fade | Self::Ripple
         )
     }
 

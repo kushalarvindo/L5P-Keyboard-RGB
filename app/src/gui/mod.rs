@@ -54,6 +54,7 @@ pub struct App {
     global_rgb: [u8; 3],
     theme: Theme,
     toasts: Toasts,
+    pub app_settings: crate::settings::Settings,
 }
 
 pub enum GuiMessage {
@@ -122,7 +123,16 @@ impl App {
         let manager = manager_result.ok();
 
         let settings: Settings = Settings::load();
-        let Settings { current_profile, profiles, effects } = settings;
+        let Settings { mut current_profile, profiles, effects } = settings;
+
+        let app_settings = crate::settings::Settings::load();
+        if let Some(ref p) = app_settings.last_profile {
+            current_profile = p.clone();
+        }
+
+        if app_settings.start_minimized {
+            visible.store(false, Ordering::SeqCst);
+        }
 
         let gui_tx_c = gui_tx.clone();
         // Default app state
@@ -146,6 +156,7 @@ impl App {
             global_rgb: [0; 3],
             theme: Theme::default(),
             toasts: Toasts::default(),
+            app_settings,
         };
 
         // Update the state according to the option chosen by the user
@@ -273,7 +284,7 @@ impl eframe::App for App {
 
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
             self.menu_bar
-                .show(ctx, ui, &mut self.current_profile, &mut self.loaded_effect, &mut self.state_changed, &mut self.toasts);
+                .show(ctx, ui, &mut self.current_profile, &mut self.loaded_effect, &mut self.state_changed, &mut self.toasts, &mut self.app_settings);
         });
 
         CentralPanel::default()
@@ -393,27 +404,6 @@ impl App {
                     self.state_changed = true;
                 }
 
-                #[cfg(target_os = "windows")]
-                {
-                    if let Ok(current_exe) = std::env::current_exe() {
-                        if let Ok(auto) = auto_launch::AutoLaunchBuilder::new()
-                            .set_app_name("LegionKeyboardRGB")
-                            .set_app_path(&current_exe.to_string_lossy())
-                            .build()
-                        {
-                            let is_auto_launch = auto.is_enabled().unwrap_or(false);
-                            let mut auto_launch_toggled = is_auto_launch;
-                            if ui.checkbox(&mut auto_launch_toggled, "Start with Windows").changed() {
-                                if auto_launch_toggled {
-                                    let _ = auto.enable();
-                                } else {
-                                    let _ = auto.disable();
-                                }
-                            }
-                        }
-                    }
-                }
-
                 Frame {
                     corner_radius: CornerRadius::same(6),
                     fill: Color32::from_gray(20),
@@ -454,6 +444,9 @@ impl App {
                 manager.custom_effect(effect);
             }
         }
+
+        self.app_settings.last_profile = Some(self.current_profile.clone());
+        self.app_settings.save();
 
         self.state_changed = false;
     }

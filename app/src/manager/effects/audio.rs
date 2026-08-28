@@ -2,7 +2,7 @@ use std::{sync::atomic::Ordering, thread, time::Duration};
 use crate::manager::Inner;
 use crossbeam_channel::bounded;
 
-pub fn play(manager: &mut Inner) {
+pub fn play(manager: &mut Inner, sensitivity: f32) {
     use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
     let host = cpal::default_host();
@@ -99,7 +99,7 @@ pub fn play(manager: &mut Inner) {
             level = new_level;
         }
 
-        let intensity = (level * 20.0).clamp(0.0, 1.0);
+        let intensity = (level * 20.0 * sensitivity).clamp(0.0, 1.0);
         
         if intensity > smoothed_intensity {
             smoothed_intensity = intensity;

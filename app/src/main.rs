@@ -10,6 +10,7 @@ mod manager;
 mod persist;
 mod tray;
 mod util;
+mod settings;
 
 use std::sync::LazyLock;
 #[cfg(not(target_os = "linux"))]

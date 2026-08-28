@@ -17,11 +17,9 @@ pub mod ripple;
 pub mod swipe;
 pub mod temperature;
 pub mod sun_moon;
-pub mod reactive;
 pub mod system_load;
 pub mod audio;
 pub mod zones;
-pub mod multi_ripple;
 
 pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &mut bool, theme: &crate::gui::style::Theme) {
     let mut effect = profile.effect;
@@ -60,22 +58,6 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 *update_lights |= ui.add(egui::Checkbox::new(smoothness, "Smooth Transitions")).changed();
             });
         }
-        Effects::Reactive { typing_color, bg_color } => {
-            ui.scope(|ui| {
-                ui.style_mut().spacing.item_spacing = theme.spacing.default;
-                show_brightness(ui, profile, update_lights);
-                show_effect_settings(ui, profile, update_lights);
-                
-                ui.horizontal(|ui| {
-                    *update_lights |= ui.color_edit_button_srgb(bg_color).changed();
-                    ui.label("Background Color");
-                });
-                ui.horizontal(|ui| {
-                    *update_lights |= ui.color_edit_button_srgb(typing_color).changed();
-                    ui.label("Typing Splash Color");
-                });
-            });
-        }
         Effects::Temperature { use_accent, hot_color, cool_color } => {
             ui.scope(|ui| {
                 ui.style_mut().spacing.item_spacing = theme.spacing.default;
@@ -98,27 +80,22 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
                 });
             });
         }
-        Effects::MultiRipple { bg_color, width } => {
-            ui.scope(|ui| {
-                ui.style_mut().spacing.item_spacing = theme.spacing.default;
-                show_brightness(ui, profile, update_lights);
-                show_effect_settings(ui, profile, update_lights);
-                
-                ui.horizontal(|ui| {
-                    *update_lights |= ui.color_edit_button_srgb(bg_color).changed();
-                    ui.label("Background Color");
-                });
-                ui.horizontal(|ui| {
-                    *update_lights |= ui.add(Slider::new(width, 0.1..=1.0)).changed();
-                    ui.label("Ripple Width");
-                });
-            });
-        }
         Effects::SunMoon => {
             ui.scope(|ui| {
                 ui.style_mut().spacing.item_spacing = theme.spacing.default;
                 show_brightness(ui, profile, update_lights);
                 ui.label("Sun/Moon position updates automatically based on system time.");
+            });
+        }
+        Effects::AudioVisualizer { sensitivity } => {
+            ui.scope(|ui| {
+                ui.style_mut().spacing.item_spacing = theme.spacing.default;
+                show_brightness(ui, profile, update_lights);
+                
+                ui.horizontal(|ui| {
+                    *update_lights |= ui.add(Slider::new(sensitivity, 0.1..=10.0)).changed();
+                    ui.label("Sensitivity");
+                });
             });
         }
         _ => {

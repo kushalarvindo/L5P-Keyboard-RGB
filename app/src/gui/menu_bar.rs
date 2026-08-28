@@ -32,8 +32,8 @@ impl MenuBarState {
         }
     }
 
-    pub fn show(&mut self, ctx: &Context, ui: &mut egui::Ui, current_profile: &mut Profile, current_effect: &mut LoadedEffect, changed: &mut bool, toasts: &mut Toasts) {
-        self.show_menu(ctx, ui, toasts);
+    pub fn show(&mut self, ctx: &Context, ui: &mut egui::Ui, current_profile: &mut Profile, current_effect: &mut LoadedEffect, changed: &mut bool, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings) {
+        self.show_menu(ctx, ui, toasts, app_settings);
         self.handle_load_profile(ctx, current_profile, changed, toasts);
         self.handle_save_profile(ctx, current_profile, toasts);
         self.handle_load_effect(ctx, current_effect, changed, toasts);
@@ -103,8 +103,10 @@ impl MenuBarState {
     }
 
     #[allow(unused_variables)]
-    fn show_menu(&mut self, ctx: &Context, ui: &mut egui::Ui, toasts: &mut Toasts) {
+    fn show_menu(&mut self, ctx: &Context, ui: &mut egui::Ui, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings) {
         use egui::menu;
+        use eframe::epaint::Color32;
+        use eframe::egui::RichText;
 
         menu::bar(ui, |ui| {
             ui.menu_button("Profile", |ui| {
@@ -121,10 +123,50 @@ impl MenuBarState {
                     self.load_effect_dialog.open();
                 }
             });
+            
+            ui.menu_button("Customise", |ui| {
+                let mut save_needed = false;
+                
+                #[cfg(target_os = "windows")]
+                {
+                    if let Ok(current_exe) = std::env::current_exe() {
+                        if let Ok(auto) = auto_launch::AutoLaunchBuilder::new()
+                            .set_app_name("LegionKeyboardRGB")
+                            .set_app_path(&current_exe.to_string_lossy())
+                            .build()
+                        {
+                            let mut auto_launch_toggled = app_settings.start_with_windows;
+                            if ui.checkbox(&mut auto_launch_toggled, "Start with Windows").changed() {
+                                app_settings.start_with_windows = auto_launch_toggled;
+                                save_needed = true;
+                                if auto_launch_toggled {
+                                    let _ = auto.enable();
+                                } else {
+                                    let _ = auto.disable();
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if ui.checkbox(&mut app_settings.start_minimized, "Start Minimized").changed() {
+                    save_needed = true;
+                }
+                
+                if save_needed {
+                    app_settings.save();
+                }
+            });
 
             let about_modal = modals::about(ctx);
             if ui.button("About").clicked() {
                 about_modal.open();
+            }
+            
+            if ui.button(RichText::new("Reset").color(Color32::RED)).clicked() {
+                crate::settings::Settings::delete();
+                *app_settings = crate::settings::Settings::default();
+                toasts.success("Settings reset to default!").duration(Some(Duration::from_millis(3000))).closable(true);
             }
 
             if !*DENY_HIDING && ui.button("Exit").clicked() {
