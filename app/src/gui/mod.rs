@@ -311,6 +311,7 @@ impl eframe::App for App {
         }
 
         if !self.visible.load(Ordering::SeqCst) {
+            ctx.send_viewport_cmd(ViewportCommand::Visible(false));
             #[cfg(target_os = "windows")]
             {
                 hide_all_process_windows();
