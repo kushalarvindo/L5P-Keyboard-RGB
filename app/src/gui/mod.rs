@@ -188,13 +188,29 @@ impl App {
     }
 
     pub fn init(self, cc: &CreationContext<'_>) -> Self {
+        let is_visible = self.visible.load(Ordering::SeqCst);
         if !*DENY_HIDING {
-            cc.egui_ctx.send_viewport_cmd(ViewportCommand::Visible(self.visible.load(Ordering::SeqCst)));
+            cc.egui_ctx.send_viewport_cmd(ViewportCommand::Visible(is_visible));
+            if !is_visible {
+                #[cfg(target_os = "windows")]
+                {
+                    use std::os::windows::ffi::OsStrExt;
+                    use winapi::um::winuser::{FindWindowW, ShowWindow, SW_HIDE};
+                    let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
+                    let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
+                    if !hwnd.is_null() {
+                        unsafe {
+                            ShowWindow(hwnd, SW_HIDE);
+                        }
+                    }
+                }
+            }
         }
 
         let egui_ctx = cc.egui_ctx.clone();
         let _gui_tx = self.gui_tx.clone();
         let _has_tray = self.has_tray.clone();
+        let visible_c = self.visible.clone();
 
         let wake_socket = std::net::UdpSocket::bind("127.0.0.1:48294").ok();
         if let Some(sock) = &wake_socket {
@@ -204,6 +220,7 @@ impl App {
         std::thread::spawn(move || loop {
             if let Ok(event) = MenuEvent::receiver().try_recv() {
                 if event.id == SHOW_ID {
+                    visible_c.store(true, Ordering::SeqCst);
                     force_show_window();
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
@@ -217,6 +234,7 @@ impl App {
             #[cfg(not(target_os = "linux"))]
             if let Ok(event) = tray_icon::TrayIconEvent::receiver().try_recv() {
                 if let tray_icon::TrayIconEvent::Click { button: tray_icon::MouseButton::Left, .. } = event {
+                    visible_c.store(true, Ordering::SeqCst);
                     force_show_window();
                     egui_ctx.request_repaint();
                     egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
@@ -229,6 +247,7 @@ impl App {
                 let mut buf = [0; 10];
                 if let Ok((amt, _)) = sock.recv_from(&mut buf) {
                     if &buf[..amt] == b"WAKE" {
+                        visible_c.store(true, Ordering::SeqCst);
                         force_show_window();
                         egui_ctx.request_repaint();
                         egui_ctx.send_viewport_cmd(ViewportCommand::Visible(true));
@@ -417,6 +436,19 @@ impl App {
                         self.state_changed = true;
                     }
 
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(eframe::egui::RichText::new("🎨 Palettes:").small().color(Color32::from_gray(180)));
+                        for preset in crate::manager::profile::PRESET_PALETTES {
+                            let btn = ui.add(eframe::egui::Button::new(eframe::egui::RichText::new(preset.name).small()))
+                                .on_hover_text(format!("Apply {} palette", preset.name));
+                            if btn.clicked() {
+                                self.current_profile.rgb_zones = crate::manager::profile::arr_to_zones(preset.colors);
+                                self.state_changed = true;
+                                self.toasts.success(format!("Applied {} palette!", preset.name)).duration(Some(Duration::from_millis(2000))).closable(true);
+                            }
+                        }
+                    });
+
                     response.response
                 });
 
@@ -500,6 +532,20 @@ impl App {
                     ctx.send_viewport_cmd(ViewportCommand::CancelClose);
                 }
                 ctx.send_viewport_cmd(ViewportCommand::Visible(false));
+                self.visible.store(false, Ordering::SeqCst);
+                
+                #[cfg(target_os = "windows")]
+                {
+                    use std::os::windows::ffi::OsStrExt;
+                    use winapi::um::winuser::{FindWindowW, ShowWindow, SW_HIDE};
+                    let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
+                    let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
+                    if !hwnd.is_null() {
+                        unsafe {
+                            ShowWindow(hwnd, SW_HIDE);
+                        }
+                    }
+                }
             }
         }
     }
@@ -509,12 +555,13 @@ fn force_show_window() {
     #[cfg(target_os = "windows")]
     {
         use std::os::windows::ffi::OsStrExt;
-        use winapi::um::winuser::{FindWindowW, ShowWindow, SetForegroundWindow, SW_RESTORE};
+        use winapi::um::winuser::{FindWindowW, ShowWindow, SetForegroundWindow, SW_SHOW, SW_RESTORE};
         
         let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
         let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
         if !hwnd.is_null() {
             unsafe {
+                ShowWindow(hwnd, SW_SHOW);
                 ShowWindow(hwnd, SW_RESTORE);
                 SetForegroundWindow(hwnd);
             }

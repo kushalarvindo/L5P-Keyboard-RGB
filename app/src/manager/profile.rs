@@ -26,6 +26,35 @@ impl Default for KeyboardZone {
 
 type Zones = [KeyboardZone; 4];
 
+#[derive(Clone, Copy, Debug)]
+pub struct PresetPalette {
+    pub name: &'static str,
+    pub colors: [u8; 12],
+}
+
+pub const PRESET_PALETTES: &[PresetPalette] = &[
+    PresetPalette {
+        name: "Sunset (Default)",
+        colors: [255, 0, 0, 255, 185, 0, 179, 181, 237, 76, 0, 255],
+    },
+    PresetPalette {
+        name: "Cyberpunk",
+        colors: [255, 0, 128, 140, 0, 255, 0, 220, 255, 255, 0, 200],
+    },
+    PresetPalette {
+        name: "Ice & Fire",
+        colors: [0, 150, 255, 0, 220, 255, 255, 120, 0, 255, 30, 0],
+    },
+    PresetPalette {
+        name: "Aurora",
+        colors: [0, 255, 150, 0, 200, 255, 120, 0, 255, 255, 0, 120],
+    },
+    PresetPalette {
+        name: "Pure White",
+        colors: [255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255],
+    },
+];
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Profile {
     pub name: Option<String>,
@@ -40,7 +69,12 @@ impl Default for Profile {
     fn default() -> Self {
         Self {
             name: None,
-            rgb_zones: Zones::default(),
+            rgb_zones: arr_to_zones([
+                255, 0, 0,      // Zone 1: Red (#FF0000)
+                255, 185, 0,    // Zone 2: Amber/Gold (#FFB900)
+                179, 181, 237,  // Zone 3: Soft Lavender (#B3B5ED)
+                76, 0, 255,     // Zone 4: Neon Violet/Blue (#4C00FF)
+            ]),
             effect: Effects::default(),
             direction: Direction::default(),
             speed: 1,
