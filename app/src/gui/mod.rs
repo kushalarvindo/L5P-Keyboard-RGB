@@ -562,13 +562,26 @@ fn hide_all_process_windows() {
     use winapi::shared::minwindef::{BOOL, LPARAM};
     use winapi::shared::windef::HWND;
     use winapi::um::processthreadsapi::GetCurrentProcessId;
-    use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, ShowWindow, SW_HIDE};
+    use winapi::um::winuser::{
+        EnumWindows, GetWindowThreadProcessId, SetWindowPos, ShowWindow,
+        HWND_BOTTOM, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE, SW_MINIMIZE,
+    };
 
     unsafe extern "system" fn enum_hide(hwnd: HWND, _: LPARAM) -> BOOL {
         let mut pid = 0;
         GetWindowThreadProcessId(hwnd, &mut pid);
         if pid == GetCurrentProcessId() {
+            SetWindowPos(
+                hwnd,
+                HWND_BOTTOM,
+                -32000,
+                -32000,
+                0,
+                0,
+                SWP_HIDEWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
+            );
             ShowWindow(hwnd, SW_HIDE);
+            ShowWindow(hwnd, SW_MINIMIZE);
         }
         1
     }
@@ -583,14 +596,42 @@ fn show_all_process_windows() {
     use winapi::shared::minwindef::{BOOL, LPARAM};
     use winapi::shared::windef::HWND;
     use winapi::um::processthreadsapi::GetCurrentProcessId;
-    use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, SetForegroundWindow, ShowWindow, SW_RESTORE, SW_SHOW};
+    use winapi::um::winuser::{
+        EnumWindows, GetSystemMetrics, GetWindowRect, GetWindowThreadProcessId, SetForegroundWindow,
+        SetWindowPos, ShowWindow, HWND_TOP, SM_CXSCREEN, SM_CYSCREEN, SWP_SHOWWINDOW, SW_RESTORE, SW_SHOW,
+    };
 
     unsafe extern "system" fn enum_show(hwnd: HWND, _: LPARAM) -> BOOL {
         let mut pid = 0;
         GetWindowThreadProcessId(hwnd, &mut pid);
         if pid == GetCurrentProcessId() {
-            ShowWindow(hwnd, SW_SHOW);
+            let mut rect = winapi::shared::windef::RECT { left: 0, top: 0, right: 0, bottom: 0 };
+            GetWindowRect(hwnd, &mut rect);
+            let mut width = rect.right - rect.left;
+            let mut height = rect.bottom - rect.top;
+            if width <= 0 || width > 2000 {
+                width = 520;
+            }
+            if height <= 0 || height > 2000 {
+                height = 490;
+            }
+
+            let screen_w = GetSystemMetrics(SM_CXSCREEN);
+            let screen_h = GetSystemMetrics(SM_CYSCREEN);
+            let pos_x = (screen_w - width) / 2;
+            let pos_y = (screen_h - height) / 2;
+
+            SetWindowPos(
+                hwnd,
+                HWND_TOP,
+                pos_x,
+                pos_y,
+                width,
+                height,
+                SWP_SHOWWINDOW,
+            );
             ShowWindow(hwnd, SW_RESTORE);
+            ShowWindow(hwnd, SW_SHOW);
             SetForegroundWindow(hwnd);
         }
         1
