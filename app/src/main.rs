@@ -103,8 +103,7 @@ fn start_ui(output_type: OutputType, hide_window: bool) {
             .with_min_inner_size(WINDOW_SIZE)
             .with_max_inner_size(WINDOW_SIZE)
             .with_icon(app_icon)
-            .with_visible(!hide)
-            .with_minimized(hide),
+            .with_visible(!hide),
         ..eframe::NativeOptions::default()
     };
 
