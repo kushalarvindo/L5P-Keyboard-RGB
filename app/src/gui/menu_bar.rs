@@ -189,12 +189,12 @@ impl MenuBarState {
                             toasts.error("Could not access DWM registry key.").duration(Some(Duration::from_millis(3000))).closable(true);
                         }
                     }
-                    if ui.button("Apply Sunset Palette (Signature)").clicked() {
+                    if ui.button("Apply Default Palette").clicked() {
                         current_profile.rgb_zones = crate::manager::profile::arr_to_zones([
                             255, 0, 0, 255, 185, 0, 179, 181, 237, 76, 0, 255
                         ]);
                         *changed = true;
-                        toasts.success("Applied Signature Sunset Palette!").duration(Some(Duration::from_millis(3000))).closable(true);
+                        toasts.success("Applied Default Palette!").duration(Some(Duration::from_millis(3000))).closable(true);
                     }
                 }
                 

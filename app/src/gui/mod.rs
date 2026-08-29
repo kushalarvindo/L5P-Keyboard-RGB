@@ -318,6 +318,28 @@ impl eframe::App for App {
             self.exit_app();
         }
 
+        if !self.visible.load(Ordering::SeqCst) {
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::ffi::OsStrExt;
+                use winapi::um::winuser::{FindWindowW, ShowWindow, SW_HIDE};
+                let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
+                let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
+                if !hwnd.is_null() {
+                    unsafe {
+                        ShowWindow(hwnd, SW_HIDE);
+                    }
+                }
+            }
+
+            if self.state_changed {
+                self.update_state();
+            }
+
+            ctx.request_repaint_after(Duration::from_millis(100));
+            return;
+        }
+
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
             self.menu_bar.show(
                 ctx,

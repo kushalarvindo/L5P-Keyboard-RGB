@@ -34,7 +34,7 @@ pub struct PresetPalette {
 
 pub const PRESET_PALETTES: &[PresetPalette] = &[
     PresetPalette {
-        name: "Sunset (Default)",
+        name: "Default",
         colors: [255, 0, 0, 255, 185, 0, 179, 181, 237, 76, 0, 255],
     },
     PresetPalette {

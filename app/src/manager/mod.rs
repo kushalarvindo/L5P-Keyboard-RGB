@@ -195,7 +195,6 @@ impl Inner {
                 ambient::play(self, fps, saturation_boost, smoothness);
             }
             Effects::SmoothWave { mode, clean_with_black } => {
-                profile.rgb_zones = profile::arr_to_zones([255, 0, 0, 0, 255, 0, 0, 0, 255, 255, 0, 255]);
                 swipe::play(self, profile, mode, clean_with_black);
             }
             Effects::Swipe { mode, clean_with_black } => swipe::play(self, profile, mode, clean_with_black),
