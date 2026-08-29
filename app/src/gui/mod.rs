@@ -194,15 +194,7 @@ impl App {
             if !is_visible {
                 #[cfg(target_os = "windows")]
                 {
-                    use std::os::windows::ffi::OsStrExt;
-                    use winapi::um::winuser::{FindWindowW, ShowWindow, SW_HIDE};
-                    let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
-                    let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
-                    if !hwnd.is_null() {
-                        unsafe {
-                            ShowWindow(hwnd, SW_HIDE);
-                        }
-                    }
+                    hide_all_process_windows();
                 }
             }
         }
@@ -321,15 +313,7 @@ impl eframe::App for App {
         if !self.visible.load(Ordering::SeqCst) {
             #[cfg(target_os = "windows")]
             {
-                use std::os::windows::ffi::OsStrExt;
-                use winapi::um::winuser::{FindWindowW, ShowWindow, SW_HIDE};
-                let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
-                let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
-                if !hwnd.is_null() {
-                    unsafe {
-                        ShowWindow(hwnd, SW_HIDE);
-                    }
-                }
+                hide_all_process_windows();
             }
 
             if self.state_changed {
@@ -558,15 +542,7 @@ impl App {
                 
                 #[cfg(target_os = "windows")]
                 {
-                    use std::os::windows::ffi::OsStrExt;
-                    use winapi::um::winuser::{FindWindowW, ShowWindow, SW_HIDE};
-                    let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
-                    let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
-                    if !hwnd.is_null() {
-                        unsafe {
-                            ShowWindow(hwnd, SW_HIDE);
-                        }
-                    }
+                    hide_all_process_windows();
                 }
             }
         }
@@ -576,17 +552,50 @@ impl App {
 fn force_show_window() {
     #[cfg(target_os = "windows")]
     {
-        use std::os::windows::ffi::OsStrExt;
-        use winapi::um::winuser::{FindWindowW, ShowWindow, SetForegroundWindow, SW_SHOW, SW_RESTORE};
-        
-        let title: Vec<u16> = std::ffi::OsStr::new("Legion RGB").encode_wide().chain(Some(0)).collect();
-        let hwnd = unsafe { FindWindowW(std::ptr::null(), title.as_ptr()) };
-        if !hwnd.is_null() {
-            unsafe {
-                ShowWindow(hwnd, SW_SHOW);
-                ShowWindow(hwnd, SW_RESTORE);
-                SetForegroundWindow(hwnd);
-            }
+        show_all_process_windows();
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn hide_all_process_windows() {
+    use winapi::shared::minwindef::{BOOL, LPARAM};
+    use winapi::shared::windef::HWND;
+    use winapi::um::processthreadsapi::GetCurrentProcessId;
+    use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, ShowWindow, SW_HIDE};
+
+    unsafe extern "system" fn enum_hide(hwnd: HWND, _: LPARAM) -> BOOL {
+        let mut pid = 0;
+        GetWindowThreadProcessId(hwnd, &mut pid);
+        if pid == GetCurrentProcessId() {
+            ShowWindow(hwnd, SW_HIDE);
         }
+        1
+    }
+
+    unsafe {
+        EnumWindows(Some(enum_hide), 0);
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn show_all_process_windows() {
+    use winapi::shared::minwindef::{BOOL, LPARAM};
+    use winapi::shared::windef::HWND;
+    use winapi::um::processthreadsapi::GetCurrentProcessId;
+    use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, SetForegroundWindow, ShowWindow, SW_RESTORE, SW_SHOW};
+
+    unsafe extern "system" fn enum_show(hwnd: HWND, _: LPARAM) -> BOOL {
+        let mut pid = 0;
+        GetWindowThreadProcessId(hwnd, &mut pid);
+        if pid == GetCurrentProcessId() {
+            ShowWindow(hwnd, SW_SHOW);
+            ShowWindow(hwnd, SW_RESTORE);
+            SetForegroundWindow(hwnd);
+        }
+        1
+    }
+
+    unsafe {
+        EnumWindows(Some(enum_show), 0);
     }
 }
