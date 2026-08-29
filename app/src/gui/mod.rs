@@ -122,13 +122,30 @@ impl App {
 
         let manager = manager_result.ok();
 
-        let settings: Settings = Settings::load();
-        let Settings { mut current_profile, profiles, effects } = settings;
-
         let app_settings = crate::settings::Settings::load();
-        if let Some(ref p) = app_settings.last_profile {
-            current_profile = p.clone();
-        }
+        
+        let mut current_profile = if let Some(ref p) = app_settings.saved_profile {
+            p.clone()
+        } else if let Some(ref p) = app_settings.last_profile {
+            p.clone()
+        } else {
+            let legacy_settings = Settings::load();
+            legacy_settings.current_profile
+        };
+
+        let profiles = if !app_settings.profiles.is_empty() {
+            app_settings.profiles.clone()
+        } else {
+            let legacy_settings = Settings::load();
+            legacy_settings.profiles
+        };
+
+        let effects = if !app_settings.effects.is_empty() {
+            app_settings.effects.clone()
+        } else {
+            let legacy_settings = Settings::load();
+            legacy_settings.effects
+        };
 
         if app_settings.start_minimized {
             visible.store(false, Ordering::SeqCst);
@@ -283,8 +300,16 @@ impl eframe::App for App {
         }
 
         TopBottomPanel::top("top-panel").show(ctx, |ui| {
-            self.menu_bar
-                .show(ctx, ui, &mut self.current_profile, &mut self.loaded_effect, &mut self.state_changed, &mut self.toasts, &mut self.app_settings);
+            self.menu_bar.show(
+                ctx,
+                ui,
+                &mut self.current_profile,
+                &mut self.loaded_effect,
+                &mut self.state_changed,
+                &mut self.toasts,
+                &mut self.app_settings,
+                &mut self.saved_items,
+            );
         });
 
         CentralPanel::default()
@@ -302,6 +327,11 @@ impl eframe::App for App {
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {
+        self.app_settings.last_profile = Some(self.current_profile.clone());
+        self.app_settings.profiles = self.saved_items.profiles.clone();
+        self.app_settings.effects = self.saved_items.custom_effects.clone();
+        self.app_settings.save();
+
         let SavedItems { profiles, custom_effects, .. } = self.saved_items.clone();
 
         let mut settings = Settings::new(profiles, custom_effects, self.current_profile.clone());
@@ -415,9 +445,13 @@ impl App {
                         ui.with_layout(Layout::top_down_justified(Align::Min), |ui| {
                             for val in Effects::iter() {
                                 let text: &'static str = val.into();
-                                if ui.selectable_value(&mut self.current_profile.effect, val, text).clicked() {
-                                    self.state_changed = true;
-                                    self.loaded_effect.state = State::None;
+                                let is_selected = self.current_profile.effect == val;
+                                if ui.selectable_label(is_selected, text).clicked() {
+                                    if !is_selected {
+                                        self.current_profile.effect = val.with_sensible_defaults();
+                                        self.state_changed = true;
+                                        self.loaded_effect.state = State::None;
+                                    }
                                 }
                             }
                         });
@@ -446,6 +480,8 @@ impl App {
         }
 
         self.app_settings.last_profile = Some(self.current_profile.clone());
+        self.app_settings.profiles = self.saved_items.profiles.clone();
+        self.app_settings.effects = self.saved_items.custom_effects.clone();
         self.app_settings.save();
 
         self.state_changed = false;

@@ -2,13 +2,22 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-use crate::manager::profile::Profile;
+use crate::manager::{custom_effect::CustomEffect, profile::Profile};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Settings {
+    #[serde(default)]
     pub start_with_windows: bool,
+    #[serde(default)]
     pub start_minimized: bool,
+    #[serde(default)]
     pub last_profile: Option<Profile>,
+    #[serde(default)]
+    pub saved_profile: Option<Profile>,
+    #[serde(default)]
+    pub profiles: Vec<Profile>,
+    #[serde(default)]
+    pub effects: Vec<CustomEffect>,
 }
 
 impl Default for Settings {
@@ -17,6 +26,9 @@ impl Default for Settings {
             start_with_windows: false,
             start_minimized: false,
             last_profile: None,
+            saved_profile: None,
+            profiles: Vec::new(),
+            effects: Vec::new(),
         }
     }
 }

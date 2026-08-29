@@ -91,8 +91,10 @@ fn init() -> Result<()> {
 }
 
 fn start_ui(output_type: OutputType, hide_window: bool) {
+    let app_settings = settings::Settings::load();
+    let hide = hide_window || app_settings.start_minimized;
     let has_tray = Arc::new(AtomicBool::new(true));
-    let visible = Arc::new(AtomicBool::new(!hide_window));
+    let visible = Arc::new(AtomicBool::new(!hide));
 
     let app_icon = load_icon_data(APP_ICON);
     let native_options = eframe::NativeOptions {

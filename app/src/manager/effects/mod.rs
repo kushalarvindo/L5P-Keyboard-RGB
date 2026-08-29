@@ -41,6 +41,9 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
             });
         }
         Effects::AmbientLight { fps, saturation_boost, smoothness } => {
+            if *fps == 0 {
+                *fps = 60;
+            }
             ui.scope(|ui| {
                 ui.style_mut().spacing.item_spacing = theme.spacing.default;
 
@@ -59,6 +62,10 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
             });
         }
         Effects::Temperature { use_accent, hot_color, cool_color } => {
+            if *hot_color == [0, 0, 0] && *cool_color == [0, 0, 0] {
+                *hot_color = [255, 0, 0];
+                *cool_color = [0, 100, 255];
+            }
             ui.scope(|ui| {
                 ui.style_mut().spacing.item_spacing = theme.spacing.default;
                 show_brightness(ui, profile, update_lights);
@@ -88,6 +95,9 @@ pub fn show_effect_ui(ui: &mut egui::Ui, profile: &mut Profile, update_lights: &
             });
         }
         Effects::AudioVisualizer { sensitivity } => {
+            if *sensitivity <= 0.0 {
+                *sensitivity = 1.0;
+            }
             ui.scope(|ui| {
                 ui.style_mut().spacing.item_spacing = theme.spacing.default;
                 show_brightness(ui, profile, update_lights);

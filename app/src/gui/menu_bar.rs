@@ -13,7 +13,7 @@ use crate::{
     DENY_HIDING,
 };
 
-use super::{GuiMessage, LoadedEffect};
+use super::{saved_items::SavedItems, GuiMessage, LoadedEffect};
 
 pub struct MenuBarState {
     gui_sender: Sender<GuiMessage>,
@@ -32,8 +32,18 @@ impl MenuBarState {
         }
     }
 
-    pub fn show(&mut self, ctx: &Context, ui: &mut egui::Ui, current_profile: &mut Profile, current_effect: &mut LoadedEffect, changed: &mut bool, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings) {
-        self.show_menu(ctx, ui, toasts, app_settings, current_profile, changed);
+    pub fn show(
+        &mut self,
+        ctx: &Context,
+        ui: &mut egui::Ui,
+        current_profile: &mut Profile,
+        current_effect: &mut LoadedEffect,
+        changed: &mut bool,
+        toasts: &mut Toasts,
+        app_settings: &mut crate::settings::Settings,
+        saved_items: &mut SavedItems,
+    ) {
+        self.show_menu(ctx, ui, toasts, app_settings, current_profile, saved_items, changed);
         self.handle_load_profile(ctx, current_profile, changed, toasts);
         self.handle_save_profile(ctx, current_profile, toasts);
         self.handle_load_effect(ctx, current_effect, changed, toasts);
@@ -103,7 +113,16 @@ impl MenuBarState {
     }
 
     #[allow(unused_variables)]
-    fn show_menu(&mut self, ctx: &Context, ui: &mut egui::Ui, toasts: &mut Toasts, app_settings: &mut crate::settings::Settings, current_profile: &mut Profile, changed: &mut bool) {
+    fn show_menu(
+        &mut self,
+        ctx: &Context,
+        ui: &mut egui::Ui,
+        toasts: &mut Toasts,
+        app_settings: &mut crate::settings::Settings,
+        current_profile: &mut Profile,
+        saved_items: &mut SavedItems,
+        changed: &mut bool,
+    ) {
         use egui::menu;
         use eframe::epaint::Color32;
         use eframe::egui::RichText;
@@ -175,6 +194,24 @@ impl MenuBarState {
                 if ui.checkbox(&mut app_settings.start_minimized, "Start Minimized").changed() {
                     save_needed = true;
                 }
+
+                if ui.button("Restore Saved State").clicked() {
+                    let restored = if let Some(ref saved) = app_settings.saved_profile {
+                        Some(saved.clone())
+                    } else if let Some(ref last) = app_settings.last_profile {
+                        Some(last.clone())
+                    } else {
+                        None
+                    };
+
+                    if let Some(profile) = restored {
+                        *current_profile = profile;
+                        *changed = true;
+                        toasts.success("Restored previous saved state!").duration(Some(Duration::from_millis(3000))).closable(true);
+                    } else {
+                        toasts.info("No saved state to restore.").duration(Some(Duration::from_millis(3000))).closable(true);
+                    }
+                }
                 
                 if save_needed {
                     app_settings.save();
@@ -185,11 +222,22 @@ impl MenuBarState {
             if ui.button("About").clicked() {
                 about_modal.open();
             }
+
+            if ui.button(RichText::new("Save").color(Color32::from_rgb(50, 205, 50))).clicked() {
+                app_settings.last_profile = Some(current_profile.clone());
+                app_settings.saved_profile = Some(current_profile.clone());
+                app_settings.profiles = saved_items.profiles.clone();
+                app_settings.effects = saved_items.custom_effects.clone();
+                app_settings.save();
+                toasts.success("State and configuration saved!").duration(Some(Duration::from_millis(3000))).closable(true);
+            }
             
             if ui.button(RichText::new("Reset").color(Color32::RED)).clicked() {
                 crate::settings::Settings::delete();
                 *app_settings = crate::settings::Settings::default();
                 *current_profile = Profile::default();
+                saved_items.profiles.clear();
+                saved_items.custom_effects.clear();
                 *changed = true;
                 toasts.success("Settings and colors reset to default!").duration(Some(Duration::from_millis(3000))).closable(true);
             }

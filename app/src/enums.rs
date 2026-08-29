@@ -78,6 +78,25 @@ impl Effects {
     pub fn is_built_in(self) -> bool {
         matches!(self, Self::Static | Self::Breath | Self::Smooth | Self::Wave)
     }
+
+    pub fn with_sensible_defaults(self) -> Self {
+        match self {
+            Self::AmbientLight { fps, saturation_boost, smoothness } => Self::AmbientLight {
+                fps: if fps == 0 { 60 } else { fps.clamp(1, 144) },
+                saturation_boost: if saturation_boost == 0.0 { 0.2 } else { saturation_boost.clamp(0.0, 1.0) },
+                smoothness: if !smoothness { true } else { smoothness },
+            },
+            Self::AudioVisualizer { sensitivity } => Self::AudioVisualizer {
+                sensitivity: if sensitivity <= 0.0 { 1.0 } else { sensitivity },
+            },
+            Self::Temperature { use_accent, hot_color, cool_color } => Self::Temperature {
+                use_accent,
+                hot_color: if hot_color == [0, 0, 0] { [255, 0, 0] } else { hot_color },
+                cool_color: if cool_color == [0, 0, 0] { [0, 100, 255] } else { cool_color },
+            },
+            other => other,
+        }
+    }
 }
 
 #[derive(Clone, Copy, EnumString, Serialize, Deserialize, Debug, EnumIter, IntoStaticStr, PartialEq, Eq, Default)]
