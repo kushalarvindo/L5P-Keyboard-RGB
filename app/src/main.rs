@@ -23,7 +23,7 @@ use std::sync::{
 
 use cli::{GuiCommand, OutputType};
 use color_eyre::{eyre::eyre, Result};
-use eframe::{egui::IconData, epaint::Vec2};
+use eframe::{egui::IconData, epaint::{Pos2, Vec2}};
 use gui::App;
 
 const APP_ICON: &[u8; 14987] = include_bytes!("../res/trayIcon.ico");
@@ -97,13 +97,19 @@ fn start_ui(output_type: OutputType, hide_window: bool) {
     let visible = Arc::new(AtomicBool::new(!hide));
 
     let app_icon = load_icon_data(APP_ICON);
+    let mut viewport_builder = eframe::egui::ViewportBuilder::default()
+        .with_inner_size(WINDOW_SIZE)
+        .with_min_inner_size(WINDOW_SIZE)
+        .with_max_inner_size(WINDOW_SIZE)
+        .with_icon(app_icon)
+        .with_visible(!hide);
+
+    if hide {
+        viewport_builder = viewport_builder.with_position(Pos2::new(-30000.0, -30000.0));
+    }
+
     let native_options = eframe::NativeOptions {
-        viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size(WINDOW_SIZE)
-            .with_min_inner_size(WINDOW_SIZE)
-            .with_max_inner_size(WINDOW_SIZE)
-            .with_icon(app_icon)
-            .with_visible(!hide),
+        viewport: viewport_builder,
         ..eframe::NativeOptions::default()
     };
 

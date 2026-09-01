@@ -124,7 +124,7 @@ impl App {
 
         let app_settings = crate::settings::Settings::load();
         
-        let mut current_profile = if let Some(ref p) = app_settings.saved_profile {
+        let current_profile = if let Some(ref p) = app_settings.saved_profile {
             p.clone()
         } else if let Some(ref p) = app_settings.last_profile {
             p.clone()
