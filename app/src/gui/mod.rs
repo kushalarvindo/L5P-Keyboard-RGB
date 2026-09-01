@@ -552,24 +552,12 @@ fn hide_all_process_windows() {
     use winapi::shared::minwindef::{BOOL, LPARAM};
     use winapi::shared::windef::HWND;
     use winapi::um::processthreadsapi::GetCurrentProcessId;
-    use winapi::um::winuser::{
-        EnumWindows, GetWindowThreadProcessId, SetWindowPos, ShowWindow,
-        HWND_BOTTOM, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE,
-    };
+    use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, ShowWindow, SW_HIDE};
 
     unsafe extern "system" fn enum_hide(hwnd: HWND, _: LPARAM) -> BOOL {
         let mut pid = 0;
         GetWindowThreadProcessId(hwnd, &mut pid);
         if pid == GetCurrentProcessId() {
-            SetWindowPos(
-                hwnd,
-                HWND_BOTTOM,
-                -32000,
-                -32000,
-                0,
-                0,
-                SWP_HIDEWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
-            );
             ShowWindow(hwnd, SW_HIDE);
         }
         1
@@ -585,47 +573,33 @@ fn show_all_process_windows(ctx: &Context) {
     use winapi::shared::minwindef::{BOOL, LPARAM};
     use winapi::shared::windef::HWND;
     use winapi::um::processthreadsapi::GetCurrentProcessId;
-    use winapi::um::winuser::{
-        EnumWindows, GetSystemMetrics, GetWindowThreadProcessId, SetForegroundWindow,
-        SetWindowPos, ShowWindow, HWND_TOP, SM_CXSCREEN, SM_CYSCREEN, SWP_SHOWWINDOW, SW_RESTORE, SW_SHOW,
-    };
+    use winapi::um::winuser::{EnumWindows, GetSystemMetrics, GetWindowThreadProcessId, SetForegroundWindow, ShowWindow, SM_CXSCREEN, SM_CYSCREEN, SW_RESTORE, SW_SHOW};
 
     let screen_w = unsafe { GetSystemMetrics(SM_CXSCREEN) };
     let screen_h = unsafe { GetSystemMetrics(SM_CYSCREEN) };
-    let width = 520;
-    let height = 490;
-    let pos_x = (screen_w - width) / 2;
-    let pos_y = (screen_h - height) / 2;
+    let width = 520.0;
+    let height = 490.0;
+    let pos_x = ((screen_w as f32) - width) / 2.0;
+    let pos_y = ((screen_h as f32) - height) / 2.0;
 
-    ctx.send_viewport_cmd(ViewportCommand::OuterPosition(eframe::epaint::Pos2::new(pos_x as f32, pos_y as f32)));
-    ctx.send_viewport_cmd(ViewportCommand::InnerSize(eframe::epaint::Vec2::new(width as f32, height as f32)));
+    ctx.send_viewport_cmd(ViewportCommand::OuterPosition(eframe::epaint::Pos2::new(pos_x, pos_y)));
+    ctx.send_viewport_cmd(ViewportCommand::InnerSize(eframe::epaint::Vec2::new(width, height)));
     ctx.send_viewport_cmd(ViewportCommand::Visible(true));
     ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
     ctx.send_viewport_cmd(ViewportCommand::Focus);
 
-    unsafe extern "system" fn enum_show(hwnd: HWND, lparam: LPARAM) -> BOOL {
+    unsafe extern "system" fn enum_show(hwnd: HWND, _: LPARAM) -> BOOL {
         let mut pid = 0;
         GetWindowThreadProcessId(hwnd, &mut pid);
         if pid == GetCurrentProcessId() {
-            let (pos_x, pos_y, width, height) = *(lparam as *const (i32, i32, i32, i32));
-            SetWindowPos(
-                hwnd,
-                HWND_TOP,
-                pos_x,
-                pos_y,
-                width,
-                height,
-                SWP_SHOWWINDOW,
-            );
-            ShowWindow(hwnd, SW_RESTORE);
             ShowWindow(hwnd, SW_SHOW);
+            ShowWindow(hwnd, SW_RESTORE);
             SetForegroundWindow(hwnd);
         }
         1
     }
 
-    let pos_data = (pos_x, pos_y, width, height);
     unsafe {
-        EnumWindows(Some(enum_show), &pos_data as *const _ as LPARAM);
+        EnumWindows(Some(enum_show), 0);
     }
 }
