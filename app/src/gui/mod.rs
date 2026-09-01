@@ -311,17 +311,9 @@ impl eframe::App for App {
         }
 
         if !self.visible.load(Ordering::SeqCst) {
-            ctx.send_viewport_cmd(ViewportCommand::Visible(false));
-            #[cfg(target_os = "windows")]
-            {
-                hide_all_process_windows();
-            }
-
             if self.state_changed {
                 self.update_state();
             }
-
-            ctx.request_repaint_after(Duration::from_millis(100));
             return;
         }
 
@@ -564,7 +556,7 @@ fn hide_all_process_windows() {
     use winapi::um::processthreadsapi::GetCurrentProcessId;
     use winapi::um::winuser::{
         EnumWindows, GetWindowThreadProcessId, SetWindowPos, ShowWindow,
-        HWND_BOTTOM, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE, SW_MINIMIZE,
+        HWND_BOTTOM, SWP_HIDEWINDOW, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_HIDE,
     };
 
     unsafe extern "system" fn enum_hide(hwnd: HWND, _: LPARAM) -> BOOL {
@@ -581,7 +573,6 @@ fn hide_all_process_windows() {
                 SWP_HIDEWINDOW | SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE,
             );
             ShowWindow(hwnd, SW_HIDE);
-            ShowWindow(hwnd, SW_MINIMIZE);
         }
         1
     }
