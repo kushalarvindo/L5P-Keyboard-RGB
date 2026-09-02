@@ -94,22 +94,15 @@ fn start_ui(output_type: OutputType, hide_window: bool) {
     let app_settings = settings::Settings::load();
     let hide = hide_window || app_settings.start_minimized;
     let has_tray = Arc::new(AtomicBool::new(true));
-    let visible = Arc::new(AtomicBool::new(!hide));
+    let visible = Arc::new(AtomicBool::new(true));
 
     let app_icon = load_icon_data(APP_ICON);
-    let mut viewport_builder = eframe::egui::ViewportBuilder::default()
-        .with_inner_size(WINDOW_SIZE)
-        .with_min_inner_size(WINDOW_SIZE)
-        .with_max_inner_size(WINDOW_SIZE)
-        .with_icon(app_icon)
-        .with_visible(!hide);
-
-    if hide {
-        viewport_builder = viewport_builder.with_position(Pos2::new(-30000.0, -30000.0));
-    }
-
     let native_options = eframe::NativeOptions {
-        viewport: viewport_builder,
+        viewport: eframe::egui::ViewportBuilder::default()
+            .with_inner_size(WINDOW_SIZE)
+            .with_min_inner_size(WINDOW_SIZE)
+            .with_max_inner_size(WINDOW_SIZE)
+            .with_icon(app_icon),
         ..eframe::NativeOptions::default()
     };
 
@@ -133,7 +126,7 @@ fn start_ui(output_type: OutputType, hide_window: bool) {
     #[cfg(not(target_os = "linux"))]
     let tray_c = _tray_icon.clone();
 
-    let app = App::new(output_type, has_tray, visible);
+    let app = App::new(output_type, has_tray, visible, hide);
 
     eframe::run_native(
         "Legion RGB",

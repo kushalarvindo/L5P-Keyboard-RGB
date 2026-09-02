@@ -43,6 +43,8 @@ pub struct App {
     has_tray: Arc<AtomicBool>,
     visible: Arc<AtomicBool>,
     was_minimized: bool,
+    hide_on_startup: bool,
+    first_frame_rendered: bool,
 
     manager: Option<EffectManager>,
     state_changed: bool,
@@ -105,7 +107,7 @@ pub enum State {
 }
 
 impl App {
-    pub fn new(output: OutputType, has_tray: Arc<AtomicBool>, visible: Arc<AtomicBool>) -> Self {
+    pub fn new(output: OutputType, has_tray: Arc<AtomicBool>, visible: Arc<AtomicBool>, hide_on_startup: bool) -> Self {
         let (gui_tx, gui_rx) = crossbeam_channel::unbounded::<GuiMessage>();
 
         let manager_result = EffectManager::new(manager::OperationMode::Gui);
@@ -147,10 +149,6 @@ impl App {
             legacy_settings.effects
         };
 
-        if app_settings.start_minimized {
-            visible.store(false, Ordering::SeqCst);
-        }
-
         let gui_tx_c = gui_tx.clone();
         // Default app state
         let mut app = Self {
@@ -161,6 +159,8 @@ impl App {
             has_tray,
             visible,
             was_minimized: false,
+            hide_on_startup,
+            first_frame_rendered: false,
 
             manager,
             // Default to true for an instant update on launch
@@ -188,16 +188,7 @@ impl App {
     }
 
     pub fn init(self, cc: &CreationContext<'_>) -> Self {
-        let is_visible = self.visible.load(Ordering::SeqCst);
-        if !*DENY_HIDING {
-            cc.egui_ctx.send_viewport_cmd(ViewportCommand::Visible(is_visible));
-            if !is_visible {
-                #[cfg(target_os = "windows")]
-                {
-                    hide_all_process_windows();
-                }
-            }
-        }
+        self.configure_style(&cc.egui_ctx);
 
         let egui_ctx = cc.egui_ctx.clone();
         let _gui_tx = self.gui_tx.clone();
@@ -301,7 +292,7 @@ impl eframe::App for App {
             self.exit_app();
         }
 
-        if !self.visible.load(Ordering::SeqCst) {
+        if !self.visible.load(Ordering::SeqCst) && self.first_frame_rendered {
             if self.state_changed {
                 self.update_state();
             }
@@ -330,6 +321,17 @@ impl eframe::App for App {
 
         if self.state_changed {
             self.update_state();
+        }
+
+        if self.hide_on_startup && !self.first_frame_rendered {
+            self.first_frame_rendered = true;
+            self.visible.store(false, Ordering::SeqCst);
+            ctx.send_viewport_cmd(ViewportCommand::Visible(false));
+            #[cfg(target_os = "windows")]
+            {
+                hide_all_process_windows();
+            }
+            return;
         }
 
         self.handle_close_request(ctx);
@@ -522,7 +524,6 @@ impl App {
                     ctx.send_viewport_cmd(ViewportCommand::CancelClose);
                 }
                 ctx.send_viewport_cmd(ViewportCommand::Visible(false));
-                ctx.send_viewport_cmd(ViewportCommand::OuterPosition(eframe::epaint::Pos2::new(-30000.0, -30000.0)));
                 self.visible.store(false, Ordering::SeqCst);
                 
                 #[cfg(target_os = "windows")]
@@ -535,15 +536,13 @@ impl App {
 }
 
 fn force_show_window(ctx: &Context) {
+    ctx.send_viewport_cmd(ViewportCommand::Visible(true));
+    ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
+    ctx.send_viewport_cmd(ViewportCommand::Focus);
+
     #[cfg(target_os = "windows")]
     {
-        show_all_process_windows(ctx);
-    }
-    #[cfg(not(target_os = "windows"))]
-    {
-        ctx.send_viewport_cmd(ViewportCommand::Visible(true));
-        ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
-        ctx.send_viewport_cmd(ViewportCommand::Focus);
+        show_all_process_windows();
     }
 }
 
@@ -569,24 +568,11 @@ fn hide_all_process_windows() {
 }
 
 #[cfg(target_os = "windows")]
-fn show_all_process_windows(ctx: &Context) {
+fn show_all_process_windows() {
     use winapi::shared::minwindef::{BOOL, LPARAM};
     use winapi::shared::windef::HWND;
     use winapi::um::processthreadsapi::GetCurrentProcessId;
-    use winapi::um::winuser::{EnumWindows, GetSystemMetrics, GetWindowThreadProcessId, SetForegroundWindow, ShowWindow, SM_CXSCREEN, SM_CYSCREEN, SW_RESTORE, SW_SHOW};
-
-    let screen_w = unsafe { GetSystemMetrics(SM_CXSCREEN) };
-    let screen_h = unsafe { GetSystemMetrics(SM_CYSCREEN) };
-    let width = 520.0;
-    let height = 490.0;
-    let pos_x = ((screen_w as f32) - width) / 2.0;
-    let pos_y = ((screen_h as f32) - height) / 2.0;
-
-    ctx.send_viewport_cmd(ViewportCommand::OuterPosition(eframe::epaint::Pos2::new(pos_x, pos_y)));
-    ctx.send_viewport_cmd(ViewportCommand::InnerSize(eframe::epaint::Vec2::new(width, height)));
-    ctx.send_viewport_cmd(ViewportCommand::Visible(true));
-    ctx.send_viewport_cmd(ViewportCommand::Minimized(false));
-    ctx.send_viewport_cmd(ViewportCommand::Focus);
+    use winapi::um::winuser::{EnumWindows, GetWindowThreadProcessId, SetForegroundWindow, ShowWindow, SW_RESTORE, SW_SHOW};
 
     unsafe extern "system" fn enum_show(hwnd: HWND, _: LPARAM) -> BOOL {
         let mut pid = 0;
